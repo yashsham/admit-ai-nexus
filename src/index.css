@@ -105,11 +105,20 @@
 @layer components {
   .hero-black {
     background: radial-gradient(ellipse at center, hsl(210 16% 10%) 0%, hsl(210 20% 6%) 100%);
+    transition: all 0.6s ease;
   }
 
   .hero-rainbow-hover {
     position: relative;
     overflow: hidden;
+  }
+
+  .hero-rainbow-hover:hover {
+    background: linear-gradient(45deg, 
+      #ff0066, #ff6600, #ffff00, #66ff00, 
+      #0066ff, #6600ff, #ff0066);
+    background-size: 300% 300%;
+    animation: rainbow-shift 3s ease infinite;
   }
 
   .hero-rainbow-hover::before {
@@ -141,7 +150,7 @@
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: shimmer 3s ease-in-out infinite;
+    animation: shimmer 3s ease-in-out infinite, glow-pulse 2s ease-in-out infinite alternate;
   }
 
   .hover-lift {
@@ -184,6 +193,26 @@
   .shine-effect:hover::after {
     left: 100%;
   }
+
+  /* Global scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary-glow));
+  }
 }
 
 @keyframes shimmer {
@@ -199,6 +228,21 @@
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
+}
+
+@keyframes rainbow-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes glow-pulse {
+  from {
+    filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.3));
+  }
+  to {
+    filter: drop-shadow(0 0 30px rgba(139, 92, 246, 0.6));
+  }
 }
 
 .float-animation {

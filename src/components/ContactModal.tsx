@@ -34,6 +34,21 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
     setIsSubmitting(true);
 
     try {
+      // Send email via edge function first
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            name,
+            email,
+            message,
+            type: 'contact'
+          }
+        });
+      } catch (emailError) {
+        console.warn('Email sending failed, but continuing with database storage:', emailError);
+      }
+
+      // Store in database
       const { error } = await supabase
         .from('contact_submissions')
         .insert([
@@ -128,7 +143,7 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
         </form>
 
         <div className="text-xs text-muted-foreground text-center">
-          We typically respond within 24 hours. For urgent matters, email us directly at support@admitconnect.ai
+          We typically respond within 24 hours. All messages are sent to yashprofessionalai@gmail.com
         </div>
       </DialogContent>
     </Dialog>

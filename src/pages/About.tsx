@@ -114,13 +114,33 @@ const About = () => {
       {/* Team Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Our Team</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Experienced professionals dedicated to revolutionizing higher education
+          <h2 className="text-3xl font-bold mb-4">Meet the AdmitConnect AI Team</h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+            Our passionate team of AI experts, educators, and developers is dedicated to 
+            revolutionizing the college admission process.
           </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Button 
+              size="lg"
+              variant="hero"
+              onClick={() => window.open('/our-services', '_blank')}
+              className="text-lg px-8 py-3"
+            >
+              Learn More About Our Services
+            </Button>
+            <Button 
+              size="lg"
+              variant="outline"
+              onClick={() => setShowContact(true)}
+              className="text-lg px-8 py-3"
+            >
+              <Mail className="w-5 h-5 mr-2" />
+              Contact Us
+            </Button>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Card className="p-6 text-center bg-card/50 backdrop-blur-sm border-border/50">
+          <Card className="p-6 text-center bg-card/50 backdrop-blur-sm border-border/50 hover:shadow-xl transition-all duration-300">
             <div className="w-20 h-20 bg-ai-gradient rounded-full mx-auto mb-4 flex items-center justify-center">
               <Users className="w-10 h-10 text-white" />
             </div>
@@ -130,7 +150,7 @@ const About = () => {
               of educational technology.
             </p>
           </Card>
-          <Card className="p-6 text-center bg-card/50 backdrop-blur-sm border-border/50">
+          <Card className="p-6 text-center bg-card/50 backdrop-blur-sm border-border/50 hover:shadow-xl transition-all duration-300">
             <div className="w-20 h-20 bg-ai-gradient rounded-full mx-auto mb-4 flex items-center justify-center">
               <Target className="w-10 h-10 text-white" />
             </div>
@@ -140,7 +160,7 @@ const About = () => {
               understand the industry.
             </p>
           </Card>
-          <Card className="p-6 text-center bg-card/50 backdrop-blur-sm border-border/50">
+          <Card className="p-6 text-center bg-card/50 backdrop-blur-sm border-border/50 hover:shadow-xl transition-all duration-300">
             <div className="w-20 h-20 bg-ai-gradient rounded-full mx-auto mb-4 flex items-center justify-center">
               <Zap className="w-10 h-10 text-white" />
             </div>

@@ -4,12 +4,15 @@ import { Card } from "@/components/ui/card";
 import { Brain, Phone, MessageSquare, BarChart3, Shield, Zap, ArrowRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
-import { DemoModal } from "./DemoModal";
 
-const Hero = () => {
+interface HeroProps {
+  onWatchDemoClick: () => void;
+  onScheduleDemoClick: () => void;
+}
+
+const Hero = ({ onWatchDemoClick, onScheduleDemoClick }: HeroProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [showDemo, setShowDemo] = useState(false);
 
   const handleGetStarted = () => {
     if (user) {
@@ -94,7 +97,7 @@ const Hero = () => {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => setShowDemo(true)}
+              onClick={onWatchDemoClick}
               className="px-8 py-4 text-lg hover-lift"
             >
               Watch Demo
@@ -158,17 +161,17 @@ const Hero = () => {
             <Button
               variant="hero"
               size="lg"
-              onClick={scrollToFeatures}
+              onClick={onScheduleDemoClick}
               className="hover-lift"
             >
-              Explore All Features
+              Schedule Demo
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
         </div>
       </div>
 
-      <DemoModal open={showDemo} onOpenChange={setShowDemo} />
+      
     </div>
   );
 };

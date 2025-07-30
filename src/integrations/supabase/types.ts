@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contact_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      demo_requests: {
+        Row: {
+          company: string
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string
+          preferred_time: string
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          preferred_time: string
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          preferred_time?: string
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

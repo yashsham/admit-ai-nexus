@@ -3,7 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Brain, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const Navbar = () => {
+interface NavbarProps {
+  onContactClick: () => void;
+  onScheduleClick: () => void;
+}
+
+const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -55,17 +60,17 @@ const Navbar = () => {
             </button>
             <Button
               variant="outline"
-              onClick={() => navigate("/auth")}
+              onClick={onContactClick}
               className="hover-lift"
             >
-              Sign In
+              Contact
             </Button>
             <Button
               variant="hero"
-              onClick={() => navigate("/auth")}
+              onClick={onScheduleClick}
               className="hover-lift"
             >
-              Get Started
+              Schedule Demo
             </Button>
           </div>
 
@@ -107,22 +112,22 @@ const Navbar = () => {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    navigate("/auth");
+                    onContactClick();
                     setIsMenuOpen(false);
                   }}
                   className="w-full justify-center"
                 >
-                  Sign In
+                  Contact
                 </Button>
                 <Button
                   variant="hero"
                   onClick={() => {
-                    navigate("/auth");
+                    onScheduleClick();
                     setIsMenuOpen(false);
                   }}
                   className="w-full justify-center"
                 >
-                  Get Started
+                  Schedule Demo
                 </Button>
               </div>
             </div>

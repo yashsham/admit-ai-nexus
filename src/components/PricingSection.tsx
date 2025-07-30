@@ -3,7 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Check, Crown, Rocket, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const PricingSection = () => {
+interface PricingSectionProps {
+  onContactClick: () => void;
+  onScheduleClick: () => void;
+}
+
+const PricingSection = ({ onContactClick, onScheduleClick }: PricingSectionProps) => {
   const navigate = useNavigate();
 
   const plans = [
@@ -149,7 +154,7 @@ const PricingSection = () => {
             For enterprises with specific requirements, we offer custom solutions with dedicated support, 
             advanced integrations, and tailored features.
           </p>
-          <Button variant="outline" size="lg" className="hover-lift">
+          <Button variant="outline" size="lg" onClick={onContactClick} className="hover-lift">
             Contact Sales Team
           </Button>
         </div>

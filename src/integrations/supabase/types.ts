@@ -329,7 +329,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      send_contact_email: {
+        Args: {
+          contact_name: string
+          contact_email: string
+          contact_message: string
+          form_type?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

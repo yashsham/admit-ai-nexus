@@ -58,12 +58,24 @@ const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
             >
               Pricing
             </button>
+            <button
+              onClick={() => navigate('/about')}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              About
+            </button>
+            <button
+              onClick={() => navigate('/our-services')}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Services
+            </button>
             <Button
               variant="outline"
-              onClick={onContactClick}
+              onClick={() => navigate('/auth')}
               className="hover-lift"
             >
-              Contact
+              Sign In
             </Button>
             <Button
               variant="hero"
@@ -108,16 +120,34 @@ const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
               >
                 Pricing
               </button>
+              <button
+                onClick={() => {
+                  navigate('/about');
+                  setIsMenuOpen(false);
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors text-left"
+              >
+                About
+              </button>
+              <button
+                onClick={() => {
+                  navigate('/our-services');
+                  setIsMenuOpen(false);
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors text-left"
+              >
+                Services
+              </button>
               <div className="flex flex-col space-y-2 pt-2">
                 <Button
                   variant="outline"
                   onClick={() => {
-                    onContactClick();
+                    navigate('/auth');
                     setIsMenuOpen(false);
                   }}
                   className="w-full justify-center"
                 >
-                  Contact
+                  Sign In
                 </Button>
                 <Button
                   variant="hero"

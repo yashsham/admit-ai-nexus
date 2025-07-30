@@ -14,6 +14,169 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_chat_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      campaigns: {
+        Row: {
+          calls_made: number | null
+          candidates_count: number | null
+          created_at: string
+          id: string
+          messages_sent: number | null
+          name: string
+          responses_received: number | null
+          scheduled_at: string | null
+          status: string
+          template_voice: string | null
+          template_whatsapp: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calls_made?: number | null
+          candidates_count?: number | null
+          created_at?: string
+          id?: string
+          messages_sent?: number | null
+          name: string
+          responses_received?: number | null
+          scheduled_at?: string | null
+          status?: string
+          template_voice?: string | null
+          template_whatsapp?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calls_made?: number | null
+          candidates_count?: number | null
+          created_at?: string
+          id?: string
+          messages_sent?: number | null
+          name?: string
+          responses_received?: number | null
+          scheduled_at?: string | null
+          status?: string
+          template_voice?: string | null
+          template_whatsapp?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      candidates: {
+        Row: {
+          campaign_id: string
+          city: string | null
+          course: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string
+          response_received: boolean | null
+          status: string | null
+          updated_at: string
+          voice_called: boolean | null
+          whatsapp_sent: boolean | null
+        }
+        Insert: {
+          campaign_id: string
+          city?: string | null
+          course?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone: string
+          response_received?: boolean | null
+          status?: string | null
+          updated_at?: string
+          voice_called?: boolean | null
+          whatsapp_sent?: boolean | null
+        }
+        Update: {
+          campaign_id?: string
+          city?: string | null
+          course?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          response_received?: boolean | null
+          status?: string | null
+          updated_at?: string
+          voice_called?: boolean | null
+          whatsapp_sent?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -81,29 +244,83 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          college_address: string | null
+          college_name: string | null
+          college_website: string | null
           created_at: string
           display_name: string | null
+          email: string | null
+          email_alerts: boolean | null
+          full_name: string | null
           id: string
+          notifications_enabled: boolean | null
+          sms_alerts: boolean | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          college_address?: string | null
+          college_name?: string | null
+          college_website?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
+          email_alerts?: boolean | null
+          full_name?: string | null
           id?: string
+          notifications_enabled?: boolean | null
+          sms_alerts?: boolean | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          college_address?: string | null
+          college_name?: string | null
+          college_website?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
+          email_alerts?: boolean | null
+          full_name?: string | null
           id?: string
+          notifications_enabled?: boolean | null
+          sms_alerts?: boolean | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      schedule_demos: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string
+          preferred_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          preferred_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          preferred_time?: string
+          updated_at?: string
         }
         Relationships: []
       }

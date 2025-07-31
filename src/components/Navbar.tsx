@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AuthModal } from "@/components/AuthModal";
 import { Brain, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/components/AuthProvider";
 
 interface NavbarProps {
   onContactClick: () => void;
@@ -10,7 +12,29 @@ interface NavbarProps {
 
 const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignInClick = () => {
+    setAuthMode("signin");
+    setAuthModalOpen(true);
+  };
+
+  const handleSignUpClick = () => {
+    setAuthMode("signup");
+    setAuthModalOpen(true);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
@@ -70,20 +94,41 @@ const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
             >
               Services
             </button>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/auth')}
-              className="hover-lift"
-            >
-              Sign In
-            </Button>
-            <Button
-              variant="hero"
-              onClick={onScheduleClick}
-              className="hover-lift"
-            >
-              Schedule Demo
-            </Button>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/dashboard')}
+                  className="hover-lift"
+                >
+                  Dashboard
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleSignOut}
+                  className="hover-lift"
+                >
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant="outline"
+                  onClick={handleSignInClick}
+                  className="hover-lift"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  variant="hero"
+                  onClick={handleSignUpClick}
+                  className="hover-lift"
+                >
+                  Get Started
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -139,31 +184,64 @@ const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
                 Services
               </button>
               <div className="flex flex-col space-y-2 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    navigate('/auth');
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full justify-center"
-                >
-                  Sign In
-                </Button>
-                <Button
-                  variant="hero"
-                  onClick={() => {
-                    onScheduleClick();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full justify-center"
-                >
-                  Schedule Demo
-                </Button>
+                {user ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        navigate('/dashboard');
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full justify-center"
+                    >
+                      Dashboard
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        handleSignOut();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full justify-center"
+                    >
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        handleSignInClick();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full justify-center"
+                    >
+                      Sign In
+                    </Button>
+                    <Button
+                      variant="hero"
+                      onClick={() => {
+                        handleSignUpClick();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full justify-center"
+                    >
+                      Get Started
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
+      
+      <AuthModal 
+        open={authModalOpen} 
+        onOpenChange={setAuthModalOpen}
+        defaultMode={authMode}
+      />
     </nav>
   );
 };

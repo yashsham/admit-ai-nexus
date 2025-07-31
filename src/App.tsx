@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ChatWidget } from "@/components/ChatWidget";
@@ -24,8 +25,9 @@ const App = () => (
       enableSystem
       disableTransitionOnChange
     >
-      <TooltipProvider>
-        <AuthProvider>
+      <HelmetProvider>
+        <TooltipProvider>
+          <AuthProvider>
           <Toaster />
           <Sonner />
           <ChatWidget />
@@ -46,6 +48,7 @@ const App = () => (
           </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>
+      </HelmetProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

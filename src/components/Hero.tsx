@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ScrollReveal, FadeIn } from "@/components/ui/scroll-reveal";
+import { RippleButton } from "@/components/ui/ripple-button";
 import { Brain, Phone, MessageSquare, BarChart3, Shield, Zap, ArrowRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
@@ -84,47 +86,58 @@ const Hero = ({ onWatchDemoClick, onScheduleDemoClick }: HeroProps) => {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button
-              variant="hero"
-              size="lg"
-              onClick={handleGetStarted}
-              className="px-8 py-4 text-lg hover-lift"
-            >
-              Start Free Trial
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={onWatchDemoClick}
-              className="px-8 py-4 text-lg hover-lift"
-            >
-              Watch Demo
-            </Button>
-          </div>
+          <FadeIn delay={300}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <RippleButton
+                variant="hero"
+                size="lg"
+                onClick={handleGetStarted}
+                className="px-8 py-4 text-lg hover-lift animate-bounce-in"
+              >
+                Start Free Trial
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </RippleButton>
+              <RippleButton
+                variant="outline"
+                size="lg"
+                onClick={onWatchDemoClick}
+                className="px-8 py-4 text-lg hover-lift"
+                rippleColor="rgba(59, 130, 246, 0.5)"
+              >
+                Watch Demo
+              </RippleButton>
+            </div>
+          </FadeIn>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-16 pt-16 border-t border-border/50">
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold bg-ai-gradient bg-clip-text text-transparent logo-colorful">
-                10,000+
-              </div>
-              <p className="text-muted-foreground mt-2">Students Contacted Daily</p>
+          <ScrollReveal direction="up" delay={500}>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-16 pt-16 border-t border-border/50">
+              <FadeIn delay={100}>
+                <div className="text-center hover:scale-105 transition-transform duration-300">
+                  <div className="text-3xl sm:text-4xl font-bold bg-ai-gradient bg-clip-text text-transparent logo-colorful animate-text-focus">
+                    10,000+
+                  </div>
+                  <p className="text-muted-foreground mt-2">Students Contacted Daily</p>
+                </div>
+              </FadeIn>
+              <FadeIn delay={200}>
+                <div className="text-center hover:scale-105 transition-transform duration-300">
+                  <div className="text-3xl sm:text-4xl font-bold bg-ai-gradient bg-clip-text text-transparent logo-colorful animate-text-focus">
+                    300%
+                  </div>
+                  <p className="text-muted-foreground mt-2">Increase in Enrollment</p>
+                </div>
+              </FadeIn>
+              <FadeIn delay={300}>
+                <div className="text-center hover:scale-105 transition-transform duration-300">
+                  <div className="text-3xl sm:text-4xl font-bold bg-ai-gradient bg-clip-text text-transparent logo-colorful animate-text-focus">
+                    90%
+                  </div>
+                  <p className="text-muted-foreground mt-2">Reduction in Manual Work</p>
+                </div>
+              </FadeIn>
             </div>
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold bg-ai-gradient bg-clip-text text-transparent logo-colorful">
-                300%
-              </div>
-              <p className="text-muted-foreground mt-2">Increase in Enrollment</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold bg-ai-gradient bg-clip-text text-transparent logo-colorful">
-                90%
-              </div>
-              <p className="text-muted-foreground mt-2">Reduction in Manual Work</p>
-            </div>
-          </div>
+          </ScrollReveal>
         </div>
       </div>
 
@@ -144,30 +157,39 @@ const Hero = ({ onWatchDemoClick, onScheduleDemoClick }: HeroProps) => {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card key={index} className="p-6 bg-card/50 backdrop-blur-sm border-border/50 hover-lift glow-border">
-                  <div className="space-y-4">
-                    <div className="w-12 h-12 bg-ai-gradient rounded-lg flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-white" />
+                <ScrollReveal 
+                  key={index} 
+                  direction="up" 
+                  delay={index * 100}
+                  className="group"
+                >
+                  <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50 hover-lift glow-border group-hover:scale-[1.02] transition-all duration-500 shine-effect">
+                    <div className="space-y-4">
+                      <div className="w-12 h-12 bg-ai-gradient rounded-lg flex items-center justify-center group-hover:rotate-6 transition-transform duration-300 animate-particle-float">
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-card-foreground group-hover:text-primary transition-colors duration-300">{feature.title}</h3>
+                      <p className="text-muted-foreground">{feature.description}</p>
                     </div>
-                    <h3 className="text-xl font-semibold text-card-foreground">{feature.title}</h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </div>
-                </Card>
+                  </Card>
+                </ScrollReveal>
               );
             })}
           </div>
 
-          <div className="text-center mt-16">
-            <Button
-              variant="hero"
-              size="lg"
-              onClick={onScheduleDemoClick}
-              className="hover-lift"
-            >
-              Schedule Demo
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
+          <FadeIn delay={400}>
+            <div className="text-center mt-16">
+              <RippleButton
+                variant="hero"
+                size="lg"
+                onClick={onScheduleDemoClick}
+                className="hover-lift pulse"
+              >
+                Schedule Demo
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </RippleButton>
+            </div>
+          </FadeIn>
         </div>
       </div>
 

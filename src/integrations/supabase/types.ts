@@ -70,8 +70,45 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_analytics: {
+        Row: {
+          campaign_id: string
+          candidate_id: string | null
+          channel: string
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          status: string
+          timestamp: string
+        }
+        Insert: {
+          campaign_id: string
+          candidate_id?: string | null
+          channel: string
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          timestamp?: string
+        }
+        Update: {
+          campaign_id?: string
+          candidate_id?: string | null
+          channel?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
+          agent_config: Json | null
           calls_made: number | null
           candidates_count: number | null
           created_at: string
@@ -88,6 +125,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agent_config?: Json | null
           calls_made?: number | null
           candidates_count?: number | null
           created_at?: string
@@ -104,6 +142,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agent_config?: Json | null
           calls_made?: number | null
           candidates_count?: number | null
           created_at?: string
@@ -123,11 +162,13 @@ export type Database = {
       }
       candidates: {
         Row: {
+          call_answered: boolean | null
           campaign_id: string
           city: string | null
           course: string | null
           created_at: string
           email: string | null
+          email_opened: boolean | null
           id: string
           name: string
           phone: string
@@ -135,14 +176,17 @@ export type Database = {
           status: string | null
           updated_at: string
           voice_called: boolean | null
+          whatsapp_read: boolean | null
           whatsapp_sent: boolean | null
         }
         Insert: {
+          call_answered?: boolean | null
           campaign_id: string
           city?: string | null
           course?: string | null
           created_at?: string
           email?: string | null
+          email_opened?: boolean | null
           id?: string
           name: string
           phone: string
@@ -150,14 +194,17 @@ export type Database = {
           status?: string | null
           updated_at?: string
           voice_called?: boolean | null
+          whatsapp_read?: boolean | null
           whatsapp_sent?: boolean | null
         }
         Update: {
+          call_answered?: boolean | null
           campaign_id?: string
           city?: string | null
           course?: string | null
           created_at?: string
           email?: string | null
+          email_opened?: boolean | null
           id?: string
           name?: string
           phone?: string
@@ -165,6 +212,7 @@ export type Database = {
           status?: string | null
           updated_at?: string
           voice_called?: boolean | null
+          whatsapp_read?: boolean | null
           whatsapp_sent?: boolean | null
         }
         Relationships: [

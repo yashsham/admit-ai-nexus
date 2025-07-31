@@ -27,69 +27,100 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { message, conversationHistory = [] }: ChatRequest = await req.json();
 
-    // Check if OpenAI API key is available
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiApiKey) {
-      console.log("OpenAI API key not found, using mock response");
+    // Check if Gemini API key is available
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) {
+      console.log("Gemini API key not found, using mock response");
       return new Response(JSON.stringify({
-        response: "I'm currently in demo mode. For full AI capabilities, please configure the OpenAI API key in your Supabase edge function secrets. I can still help you with general information about college admissions and applications!"
+        response: "I'm currently in demo mode. For full AI capabilities, please configure the Gemini API key in your Supabase edge function secrets. I can still help you with general information about college admissions and applications!"
       }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Build conversation context
-    const systemPrompt = `You are an AI college counselor for AdmitConnect AI. You help students and families with:
+    // Build conversation context for Gemini
+    const systemPrompt = `You are an AI college counselor and campaign management agent for AdmitConnect AI. You help with:
 
-- College admissions guidance
-- Application strategies
-- Campus information and resources
-- Academic planning and course selection
-- Financial aid and scholarship advice
-- Career guidance related to college majors
-- Test preparation strategies (SAT, ACT, etc.)
+CORE FUNCTIONS:
+- College admissions guidance and application strategies
+- Campaign management and student outreach coordination
+- Analytics and reporting on engagement metrics
+- Managing email, voice, and WhatsApp campaigns
+
+AGENT CAPABILITIES:
+- Trigger email campaigns to student lists
+- Initiate voice calls using Google TTS + Twilio
+- Send WhatsApp messages to prospects
+- Generate analytics reports on campaign performance
+- Manage student data from CSV uploads
 
 Guidelines:
 - Be helpful, encouraging, and professional
-- Provide accurate, up-to-date information about college admissions
-- If you don't know something specific, acknowledge it and suggest reliable resources
-- Keep responses concise but informative
-- Focus on actionable advice
-- Be supportive of students' goals and circumstances
+- Provide actionable advice for college admissions
+- When managing campaigns, confirm actions before execution
+- Track and report on engagement metrics
+- Support students' goals while optimizing outreach efficiency
 
-Current conversation context: You're helping a student or family member with their college journey.`;
+Current conversation context: You're helping with both student guidance and campaign management.`;
 
-    const messages = [
-      { role: "system", content: systemPrompt },
-      ...conversationHistory.slice(-8).map(msg => ({
-        role: msg.role,
-        content: msg.content
-      })),
-      { role: "user", content: message }
-    ];
+    // Convert conversation history to Gemini format
+    const conversationText = conversationHistory.slice(-8).map(msg => 
+      `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+    ).join('\n');
 
-    console.log("Sending request to OpenAI with message:", message);
+    const fullPrompt = `${systemPrompt}
 
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+Previous conversation:
+${conversationText}
+
+Current user message: ${message}
+
+Please respond as the AI college counselor and campaign agent:`;
+
+    console.log("Sending request to Gemini with message:", message);
+
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${openaiApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: messages,
-        max_tokens: 500,
-        temperature: 0.7,
-        presence_penalty: 0.1,
-        frequency_penalty: 0.1,
+        contents: [{
+          parts: [{
+            text: fullPrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 500,
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.text();
-      console.error("OpenAI API error:", openaiResponse.status, errorData);
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.text();
+      console.error("Gemini API error:", geminiResponse.status, errorData);
       
       return new Response(JSON.stringify({
         response: "I apologize, but I'm experiencing technical difficulties right now. Please try again in a moment, or feel free to contact our support team for immediate assistance."
@@ -99,8 +130,8 @@ Current conversation context: You're helping a student or family member with the
       });
     }
 
-    const data = await openaiResponse.json();
-    const aiResponse = data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response. Please try again.";
+    const data = await geminiResponse.json();
+    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response. Please try again.";
 
     console.log("AI response generated successfully");
 

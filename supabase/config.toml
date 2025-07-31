@@ -5,3 +5,15 @@ verify_jwt = true
 
 [functions.send-email]
 verify_jwt = false
+
+[functions.email-agent]
+verify_jwt = true
+
+[functions.voice-agent]
+verify_jwt = true
+
+[functions.whatsapp-agent]
+verify_jwt = true
+
+[functions.campaign-orchestrator]
+verify_jwt = true

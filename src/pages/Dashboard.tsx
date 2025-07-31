@@ -34,6 +34,8 @@ import { AIChat } from "@/components/AIChat";
 import { SettingsModal } from "@/components/SettingsModal";
 import { CampaignCard } from "@/components/CampaignCard";
 import { PaymentModal } from "@/components/PaymentModal";
+import { CampaignAnalytics } from "@/components/CampaignAnalytics";
+import { CampaignAutomation } from "@/components/CampaignAutomation";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -201,18 +203,106 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Campaigns */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="automation">Automation</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column - Recent Campaigns */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold">Recent Campaigns</h3>
+                  <Button onClick={() => setActiveDialog('create-campaign')} variant="hero">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Campaign
+                  </Button>
+                </div>
+
+                {campaigns.length === 0 ? (
+                  <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border-border/50">
+                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No campaigns yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Create your first campaign to start reaching prospective students.
+                    </p>
+                    <Button onClick={() => setActiveDialog('create-campaign')} variant="hero">
+                      Create Your First Campaign
+                    </Button>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {campaigns.slice(0, 3).map((campaign) => (
+                      <CampaignCard
+                        key={campaign.id}
+                        campaign={campaign}
+                        onUpdate={loadDashboardData}
+                      />
+                    ))}
+                    {campaigns.length > 3 && (
+                      <Card className="p-4 text-center bg-card/50 backdrop-blur-sm border-border/50">
+                        <p className="text-muted-foreground">+{campaigns.length - 3} more campaigns</p>
+                        <Button variant="ghost" size="sm" className="mt-2">View All Campaigns</Button>
+                      </Card>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column - AI Chat & Quick Actions */}
+              <div className="space-y-6">
+                <AIChat />
+
+                <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-primary" />
+                    Quick Actions
+                  </h3>
+                  <div className="space-y-3">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setActiveDialog('upload-candidates')}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Candidates
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setActiveDialog('create-campaign')}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Campaign
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setShowPayment(true)}
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Upgrade Plan
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="campaigns" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold">Your Campaigns</h3>
+              <h3 className="text-xl font-semibold">All Campaigns</h3>
               <Button onClick={() => setActiveDialog('create-campaign')} variant="hero">
                 <Plus className="w-4 h-4 mr-2" />
                 New Campaign
               </Button>
             </div>
-
+            
             {campaigns.length === 0 ? (
               <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border-border/50">
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -225,7 +315,7 @@ const Dashboard = () => {
                 </Button>
               </Card>
             ) : (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4">
                 {campaigns.map((campaign) => (
                   <CampaignCard
                     key={campaign.id}
@@ -235,46 +325,16 @@ const Dashboard = () => {
                 ))}
               </div>
             )}
-          </div>
+          </TabsContent>
 
-          {/* Right Column - AI Chat & Quick Actions */}
-          <div className="space-y-6">
-            <AIChat />
+          <TabsContent value="analytics">
+            <CampaignAnalytics />
+          </TabsContent>
 
-            <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-primary" />
-                Quick Actions
-              </h3>
-              <div className="space-y-3">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => setActiveDialog('upload-candidates')}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Candidates
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => setActiveDialog('create-campaign')}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Campaign
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => setShowPayment(true)}
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Upgrade Plan
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </div>
+          <TabsContent value="automation">
+            <CampaignAutomation />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Dialogs */}

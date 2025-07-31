@@ -21,15 +21,17 @@ const Index = () => {
         onScheduleClick={() => setIsScheduleModalOpen(true)}
       />
       
-      <Hero 
-        onWatchDemoClick={() => setIsDemoModalOpen(true)}
-        onScheduleDemoClick={() => setIsScheduleModalOpen(true)}
-      />
-      
-      <PricingSection 
-        onContactClick={() => setIsContactModalOpen(true)}
-        onScheduleClick={() => setIsScheduleModalOpen(true)}
-      />
+      <main id="main-content" tabIndex={-1} className="focus:outline-none">
+        <Hero 
+          onWatchDemoClick={() => setIsDemoModalOpen(true)}
+          onScheduleDemoClick={() => setIsScheduleModalOpen(true)}
+        />
+        
+        <PricingSection 
+          onContactClick={() => setIsContactModalOpen(true)}
+          onScheduleClick={() => setIsScheduleModalOpen(true)}
+        />
+      </main>
       
       <DemoModal 
         open={isDemoModalOpen}

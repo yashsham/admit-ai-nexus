@@ -37,6 +37,7 @@ import { PaymentModal } from "@/components/PaymentModal";
 import { CampaignAnalytics } from "@/components/CampaignAnalytics";
 import { CampaignAutomation } from "@/components/CampaignAutomation";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { CampaignExecutor } from "@/components/CampaignExecutor";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -266,7 +267,7 @@ const Dashboard = () => {
                     Quick Actions
                   </h3>
                   <div className="space-y-3">
-                    <Button 
+                     <Button 
                       variant="outline" 
                       className="w-full justify-start"
                       onClick={() => setActiveDialog('upload-candidates')}
@@ -282,6 +283,16 @@ const Dashboard = () => {
                       <Plus className="w-4 h-4 mr-2" />
                       Create Campaign
                     </Button>
+                    {campaigns.length > 0 && (
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start"
+                        onClick={() => setActiveDialog('execute-campaign')}
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        Execute Campaign
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       className="w-full justify-start"
@@ -370,11 +381,36 @@ const Dashboard = () => {
             <DialogTitle>Upload Candidates</DialogTitle>
           </DialogHeader>
           <UploadCandidates 
+            campaignId={campaigns[0]?.id}
             onUploadComplete={() => {
               setActiveDialog(null);
               loadDashboardData();
             }} 
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog 
+        open={activeDialog === 'execute-campaign'} 
+        onOpenChange={(open) => !open && setActiveDialog(null)}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Execute Campaign</DialogTitle>
+          </DialogHeader>
+          {campaigns.length > 0 && (
+            <CampaignExecutor 
+              campaign={campaigns[0]}
+              onExecutionComplete={() => {
+                setActiveDialog(null);
+                loadDashboardData();
+                toast({
+                  title: "Campaign Executed",
+                  description: "Your campaign is now running across selected channels"
+                });
+              }} 
+            />
+          )}
         </DialogContent>
       </Dialog>
 

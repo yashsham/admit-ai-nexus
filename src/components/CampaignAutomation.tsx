@@ -163,6 +163,35 @@ export const CampaignAutomation = () => {
     }
   };
 
+  const executeCampaign = async (campaignId: string, channels: string[]) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('campaign-orchestrator', {
+        body: {
+          campaignId,
+          channels,
+          delay: 0 // immediate execution
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Campaign Started",
+        description: `Campaign executing across ${channels.join(', ')} channels`,
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error executing campaign:', error);
+      toast({
+        title: "Campaign Failed",
+        description: "Failed to start campaign. Please try again.",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
   const toggleRule = async (ruleId: string) => {
     setAutomationRules(prev => 
       prev.map(rule => 

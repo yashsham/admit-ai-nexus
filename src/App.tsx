@@ -15,6 +15,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import About from "./pages/About";
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import OurServices from "./pages/OurServices";
 import NotFound from "./pages/NotFound";
 
@@ -46,6 +48,16 @@ const App = () => (
                   <Route path="/dashboard" element={
                     <ProtectedRoute>
                       <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin" element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/analytics" element={
+                    <ProtectedRoute>
+                      <AnalyticsDashboard />
                     </ProtectedRoute>
                   } />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

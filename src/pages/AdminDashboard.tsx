@@ -32,6 +32,7 @@ import { CampaignAutomation } from "@/components/CampaignAutomation";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { CampaignExecutor } from "@/components/CampaignExecutor";
 import AgentControlPanel from "@/components/AgentControlPanel";
+import DataDistributionLayer from "@/components/DataDistributionLayer";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -257,42 +258,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="data" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold">Candidate Data Management</h3>
-              <Button onClick={() => setActiveDialog('upload-candidates')} variant="hero">
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Candidates
-              </Button>
-            </div>
-            
-            <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
-              <div className="flex items-center gap-3 mb-4">
-                <Database className="w-6 h-6 text-primary" />
-                <h4 className="text-lg font-semibold">Data Distribution Layer</h4>
-              </div>
-              <p className="text-muted-foreground mb-4">
-                Centralized candidate data management and distribution across all communication channels.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 border rounded-lg">
-                  <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                  <p className="font-semibold">Total Candidates</p>
-                  <p className="text-2xl font-bold text-blue-500">
-                    {campaigns.reduce((sum, c) => sum + (c.candidates_count || 0), 0)}
-                  </p>
-                </div>
-                <div className="text-center p-4 border rounded-lg">
-                  <MessageSquare className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                  <p className="font-semibold">Email Contacts</p>
-                  <p className="text-2xl font-bold text-green-500">{stats.messagesSent}</p>
-                </div>
-                <div className="text-center p-4 border rounded-lg">
-                  <Phone className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                  <p className="font-semibold">Voice Contacts</p>
-                  <p className="text-2xl font-bold text-purple-500">{stats.callsMade}</p>
-                </div>
-              </div>
-            </Card>
+            <DataDistributionLayer />
           </TabsContent>
 
           <TabsContent value="agents">

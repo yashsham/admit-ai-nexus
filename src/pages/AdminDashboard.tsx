@@ -33,6 +33,7 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { CampaignExecutor } from "@/components/CampaignExecutor";
 import AgentControlPanel from "@/components/AgentControlPanel";
 import DataDistributionLayer from "@/components/DataDistributionLayer";
+import EnhancedAgentControlPanel from "@/components/EnhancedAgentControlPanel";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -264,12 +265,12 @@ const AdminDashboard = () => {
           <TabsContent value="agents">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold">Agent Control Panel</h3>
+                <h3 className="text-xl font-semibold">Enhanced Agent Control</h3>
                 <p className="text-sm text-muted-foreground">
-                  Manage and configure your communication agents
+                  Advanced multi-agent coordination and intelligent execution
                 </p>
               </div>
-              <AgentControlPanel />
+              <EnhancedAgentControlPanel />
             </div>
           </TabsContent>
 

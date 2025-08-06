@@ -51,6 +51,20 @@ const handler = async (req: Request): Promise<Response> => {
       }
     };
 
+    // Get intelligent strategy from decision engine before execution
+    try {
+      const { data: strategyData } = await supabase.functions.invoke('decision-engine', {
+        body: { campaignId, action: 'generate_strategy' }
+      });
+
+      if (strategyData?.success) {
+        console.log('Using intelligent strategy:', strategyData.result);
+        // Apply strategy recommendations (could modify channels, delay, etc.)
+      }
+    } catch (error) {
+      console.log('Decision engine unavailable, proceeding with manual configuration');
+    }
+
     // Execute each channel sequentially with delay
     for (let i = 0; i < channels.length; i++) {
       const channel = channels[i];

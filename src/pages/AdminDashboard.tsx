@@ -34,6 +34,7 @@ import { CampaignExecutor } from "@/components/CampaignExecutor";
 import AgentControlPanel from "@/components/AgentControlPanel";
 import DataDistributionLayer from "@/components/DataDistributionLayer";
 import EnhancedAgentControlPanel from "@/components/EnhancedAgentControlPanel";
+import { DecisionLogicPanel } from "@/components/DecisionLogicPanel";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -209,10 +210,11 @@ const AdminDashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="campaigns" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
             <TabsTrigger value="data">Candidate Data</TabsTrigger>
             <TabsTrigger value="agents">Agent Control</TabsTrigger>
+            <TabsTrigger value="decision">Decision Logic</TabsTrigger>
             <TabsTrigger value="automation">Automation</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -272,6 +274,10 @@ const AdminDashboard = () => {
               </div>
               <EnhancedAgentControlPanel />
             </div>
+          </TabsContent>
+
+          <TabsContent value="decision">
+            <DecisionLogicPanel />
           </TabsContent>
 
           <TabsContent value="automation">

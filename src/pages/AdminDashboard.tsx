@@ -35,6 +35,7 @@ import AgentControlPanel from "@/components/AgentControlPanel";
 import DataDistributionLayer from "@/components/DataDistributionLayer";
 import EnhancedAgentControlPanel from "@/components/EnhancedAgentControlPanel";
 import { DecisionLogicPanel } from "@/components/DecisionLogicPanel";
+import PerformanceOptimizations from "@/components/PerformanceOptimizations";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -215,6 +216,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="data">Candidate Data</TabsTrigger>
             <TabsTrigger value="agents">Agent Control</TabsTrigger>
             <TabsTrigger value="decision">Decision Logic</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="automation">Automation</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -278,6 +280,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="decision">
             <DecisionLogicPanel />
+          </TabsContent>
+
+          <TabsContent value="performance">
+            <PerformanceOptimizations />
           </TabsContent>
 
           <TabsContent value="automation">

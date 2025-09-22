@@ -36,6 +36,7 @@ import DataDistributionLayer from "@/components/DataDistributionLayer";
 import EnhancedAgentControlPanel from "@/components/EnhancedAgentControlPanel";
 import { DecisionLogicPanel } from "@/components/DecisionLogicPanel";
 import PerformanceOptimizations from "@/components/PerformanceOptimizations";
+import RetellAgentPanel from "@/components/RetellAgentPanel";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -211,12 +212,13 @@ const AdminDashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="campaigns" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
             <TabsTrigger value="data">Candidate Data</TabsTrigger>
             <TabsTrigger value="agents">Agent Control</TabsTrigger>
             <TabsTrigger value="decision">Decision Logic</TabsTrigger>
             <TabsTrigger value="performance">Performance</TabsTrigger>
+            <TabsTrigger value="retell">Retell AI</TabsTrigger>
             <TabsTrigger value="automation">Automation</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -284,6 +286,18 @@ const AdminDashboard = () => {
 
           <TabsContent value="performance">
             <PerformanceOptimizations />
+          </TabsContent>
+
+          <TabsContent value="retell">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Retell.ai Agent Integration</h3>
+                <p className="text-sm text-muted-foreground">
+                  AI-powered voice calls with document analysis
+                </p>
+              </div>
+              <RetellAgentPanel />
+            </div>
           </TabsContent>
 
           <TabsContent value="automation">

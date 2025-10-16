@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import PricingSection from "@/components/PricingSection";
 import { DemoModal } from "@/components/DemoModal";
@@ -48,6 +49,7 @@ const Index = () => {
         onOpenChange={setIsContactModalOpen}
       />
       
+      <Footer />
       <BackToTop />
     </div>
   );

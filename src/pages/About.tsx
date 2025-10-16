@@ -1,8 +1,9 @@
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, Users, Zap, Target, Mail, Phone, Globe } from "lucide-react";
+import { Calendar, Users, Zap, Target, Mail, MessageCircle } from "lucide-react";
 import { ContactModal } from "@/components/ContactModal";
 import { ScheduleDemoModal } from "@/components/ScheduleDemoModal";
 import { BackToTop } from "@/components/BackToTop";
@@ -202,22 +203,25 @@ const About = () => {
             </Button>
           </div>
           
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <Mail className="w-8 h-8 text-primary mx-auto mb-4" />
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+            <a 
+              href="mailto:yashsharmaofficialmail@gmail.com"
+              className="flex flex-col items-center p-6 bg-card rounded-lg border border-border/50 hover:border-primary/50 transition-all hover:shadow-lg group"
+            >
+              <Mail className="w-12 h-12 text-primary mb-4 group-hover:scale-110 transition-transform" />
               <h3 className="font-semibold mb-2">Email</h3>
-              <p className="text-muted-foreground">hello@admitconnect.ai</p>
-            </div>
-            <div className="text-center">
-              <Phone className="w-8 h-8 text-primary mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">Phone</h3>
-              <p className="text-muted-foreground">+1 (555) 123-4567</p>
-            </div>
-            <div className="text-center">
-              <Globe className="w-8 h-8 text-primary mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">Website</h3>
-              <p className="text-muted-foreground">www.admitconnect.ai</p>
-            </div>
+              <p className="text-muted-foreground text-sm text-center break-all">yashsharmaofficialmail@gmail.com</p>
+            </a>
+            <a 
+              href="https://wa.me/917060595970"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center p-6 bg-card rounded-lg border border-border/50 hover:border-primary/50 transition-all hover:shadow-lg group"
+            >
+              <MessageCircle className="w-12 h-12 text-primary mb-4 group-hover:scale-110 transition-transform" />
+              <h3 className="font-semibold mb-2">WhatsApp</h3>
+              <p className="text-muted-foreground text-sm">+91 7060595970</p>
+            </a>
           </div>
         </div>
       </section>
@@ -230,6 +234,7 @@ const About = () => {
         open={showSchedule} 
         onOpenChange={setShowSchedule} 
       />
+      <Footer />
       <BackToTop />
     </div>
   );

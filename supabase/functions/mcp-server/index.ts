@@ -1,9 +1,10 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 const supabase = createClient(
@@ -25,7 +26,190 @@ interface ContextData {
   performance: any;
 }
 
-class MCPServer {
+// Agent-based MCP Server with specialized AI agents
+class AgentBasedMCPServer {
+  // Analyst Agent - specializes in data analysis and insights
+  private async analystAgent(prompt: string): Promise<any> {
+    if (!GEMINI_API_KEY) {
+      return {
+        insights: ["Analyst Agent unavailable - API key not configured"],
+        recommendations: ["Configure GEMINI_API_KEY to activate analyst capabilities"]
+      };
+    }
+
+    const agentPrompt = `You are the Analyst Agent, specializing in data analysis and performance insights.
+
+${prompt}
+
+Provide structured analysis with actionable insights and recommendations in JSON format:
+{
+  "insights": ["insight 1", "insight 2", ...],
+  "recommendations": ["recommendation 1", "recommendation 2", ...]
+}`;
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: agentPrompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 600,
+            }
+          })
+        }
+      );
+
+      if (!response.ok) throw new Error(`Analyst Agent API error: ${response.status}`);
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      
+      return {
+        insights: [text],
+        recommendations: ["Continue monitoring campaign performance"]
+      };
+    } catch (error: any) {
+      console.error('Analyst Agent error:', error);
+      return {
+        insights: ["Error generating analysis"],
+        recommendations: ["Retry analysis or check configuration"]
+      };
+    }
+  }
+
+  // Strategist Agent - specializes in optimization and strategy
+  private async strategistAgent(prompt: string): Promise<any> {
+    if (!GEMINI_API_KEY) {
+      return {
+        strategies: ["Strategist Agent unavailable - API key not configured"],
+        priorities: []
+      };
+    }
+
+    const agentPrompt = `You are the Strategist Agent, specializing in campaign optimization and strategic planning.
+
+${prompt}
+
+Provide strategic recommendations in JSON format:
+{
+  "strategies": ["strategy 1", "strategy 2", ...],
+  "priorities": ["priority 1", "priority 2", ...],
+  "expectedImpact": "description of expected outcomes"
+}`;
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: agentPrompt }] }],
+            generationConfig: {
+              temperature: 0.8,
+              maxOutputTokens: 600,
+            }
+          })
+        }
+      );
+
+      if (!response.ok) throw new Error(`Strategist Agent API error: ${response.status}`);
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      
+      return {
+        strategies: [text],
+        priorities: ["Implement recommended strategies"],
+        expectedImpact: "Improved campaign performance"
+      };
+    } catch (error: any) {
+      console.error('Strategist Agent error:', error);
+      return {
+        strategies: ["Error generating strategy"],
+        priorities: [],
+        expectedImpact: "Unknown"
+      };
+    }
+  }
+
+  // Predictor Agent - specializes in forecasting and predictions
+  private async predictorAgent(prompt: string): Promise<any> {
+    if (!GEMINI_API_KEY) {
+      return {
+        predictions: ["Predictor Agent unavailable - API key not configured"],
+        confidence: 0
+      };
+    }
+
+    const agentPrompt = `You are the Predictor Agent, specializing in forecasting outcomes and conversion predictions.
+
+${prompt}
+
+Provide predictions in JSON format:
+{
+  "predictions": ["prediction 1", "prediction 2", ...],
+  "confidence": 0.75,
+  "factors": ["factor 1", "factor 2", ...],
+  "timeline": "expected timeframe"
+}`;
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: agentPrompt }] }],
+            generationConfig: {
+              temperature: 0.6,
+              maxOutputTokens: 500,
+            }
+          })
+        }
+      );
+
+      if (!response.ok) throw new Error(`Predictor Agent API error: ${response.status}`);
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      
+      return {
+        predictions: [text],
+        confidence: 0.5,
+        factors: ["Historical data"],
+        timeline: "Short-term"
+      };
+    } catch (error: any) {
+      console.error('Predictor Agent error:', error);
+      return {
+        predictions: ["Unable to generate predictions"],
+        confidence: 0,
+        factors: [],
+        timeline: "Unknown"
+      };
+    }
+  }
   async handleRequest(method: string, params: any): Promise<any> {
     switch (method) {
       case 'tools/list':
@@ -50,48 +234,48 @@ class MCPServer {
       tools: [
         {
           name: "analyze_campaign_performance",
-          description: "Analyze campaign performance and provide insights",
+          description: "Uses Analyst Agent to analyze campaign performance metrics with AI-powered insights",
           inputSchema: {
             type: "object",
             properties: {
-              campaignId: { type: "string" },
-              timeframe: { type: "string", enum: ["1d", "7d", "30d"] }
+              campaignId: { type: "string", description: "Campaign ID to analyze" },
+              timeframe: { type: "string", description: "Analysis timeframe (e.g., '30d', '7d')" }
             },
             required: ["campaignId"]
           }
         },
         {
           name: "optimize_candidate_targeting",
-          description: "Optimize candidate targeting based on historical data",
+          description: "Uses Strategist Agent to optimize candidate targeting and segmentation strategies",
           inputSchema: {
             type: "object",
             properties: {
-              campaignId: { type: "string" },
-              criteria: { type: "object" }
+              campaignId: { type: "string", description: "Campaign ID" },
+              criteria: { type: "object", description: "Optimization criteria" }
             },
             required: ["campaignId"]
           }
         },
         {
           name: "predict_conversion_rate",
-          description: "Predict conversion rates for candidates",
+          description: "Uses Predictor Agent to forecast conversion rates based on candidate data",
           inputSchema: {
             type: "object",
             properties: {
-              candidateData: { type: "array" },
-              campaignType: { type: "string" }
+              candidateData: { type: "array", description: "Array of candidate profiles" },
+              campaignType: { type: "string", description: "Type of campaign" }
             },
-            required: ["candidateData"]
+            required: ["candidateData", "campaignType"]
           }
         },
         {
           name: "generate_communication_strategy",
-          description: "Generate personalized communication strategy",
+          description: "Uses multiple agents to generate personalized communication strategies",
           inputSchema: {
             type: "object",
             properties: {
-              candidateProfile: { type: "object" },
-              campaignGoals: { type: "object" }
+              candidateProfile: { type: "object", description: "Candidate profile data" },
+              campaignGoals: { type: "object", description: "Campaign objectives" }
             },
             required: ["candidateProfile", "campaignGoals"]
           }
@@ -101,6 +285,8 @@ class MCPServer {
   }
 
   private async callTool(name: string, args: any): Promise<any> {
+    console.log(`Agent-based tool call: ${name}`, args);
+
     switch (name) {
       case "analyze_campaign_performance":
         return this.analyzeCampaignPerformance(args.campaignId, args.timeframe);
@@ -116,63 +302,62 @@ class MCPServer {
   }
 
   private async analyzeCampaignPerformance(campaignId: string, timeframe: string = "30d"): Promise<any> {
-    const days = timeframe === "1d" ? 1 : timeframe === "7d" ? 7 : 30;
-    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    console.log(`Analyst Agent analyzing campaign ${campaignId}`);
 
-    // Get campaign data
     const { data: campaign } = await supabase
       .from('campaigns')
       .select('*')
       .eq('id', campaignId)
       .single();
 
-    // Get analytics data
+    const { data: candidates } = await supabase
+      .from('candidates')
+      .select('*')
+      .eq('campaign_id', campaignId);
+
     const { data: analytics } = await supabase
       .from('campaign_analytics')
       .select('*')
       .eq('campaign_id', campaignId)
-      .gte('timestamp', startDate);
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-    // Get candidates data
-    const { data: candidates } = await supabase
-      .from('candidates')
-      .select('*')
-      .eq('campaign_id', campaignId);
+    const totalCandidates = candidates?.length || 0;
+    const engaged = analytics?.filter(a => a.event_type === 'engagement').length || 0;
+    const conversions = analytics?.filter(a => a.event_type === 'conversion').length || 0;
 
-    if (!campaign || !analytics || !candidates) {
-      throw new Error('Campaign data not found');
-    }
+    const analysisPrompt = `Analyze this campaign performance:
 
-    const analysis = {
+Campaign: ${campaign?.name || 'Unknown'}
+Type: ${campaign?.type || 'N/A'}
+Total Candidates: ${totalCandidates}
+Engaged: ${engaged}
+Conversions: ${conversions}
+Engagement Rate: ${totalCandidates > 0 ? ((engaged / totalCandidates) * 100).toFixed(2) : 0}%
+Conversion Rate: ${totalCandidates > 0 ? ((conversions / totalCandidates) * 100).toFixed(2) : 0}%
+
+Provide actionable insights and recommendations for improving campaign performance.`;
+
+    const aiInsights = await this.analystAgent(analysisPrompt);
+
+    return {
       campaignId,
       timeframe,
       metrics: {
-        totalCandidates: candidates.length,
-        emailsSent: analytics.filter(a => a.event_type === 'email_sent').length,
-        callsMade: analytics.filter(a => a.event_type === 'voice_call_made').length,
-        whatsappSent: analytics.filter(a => a.event_type === 'whatsapp_sent').length,
-        responses: analytics.filter(a => a.event_type === 'response_received').length,
-        conversions: candidates.filter(c => c.response_received).length
+        totalCandidates,
+        engaged,
+        conversions,
+        engagementRate: totalCandidates > 0 ? (engaged / totalCandidates) : 0,
+        conversionRate: totalCandidates > 0 ? (conversions / totalCandidates) : 0
       },
-      performance: {
-        emailOpenRate: this.calculateRate(analytics, 'email_opened', 'email_sent'),
-        callAnswerRate: this.calculateRate(analytics, 'call_answered', 'voice_call_made'),
-        whatsappReadRate: this.calculateRate(analytics, 'whatsapp_read', 'whatsapp_sent'),
-        overallConversionRate: candidates.filter(c => c.response_received).length / candidates.length
-      },
-      insights: [],
-      recommendations: []
+      ...aiInsights,
+      analyzedBy: "Analyst Agent"
     };
-
-    // Generate AI insights using Gemini
-    const aiInsights = await this.generateAIInsights(analysis, campaign, candidates, analytics);
-    analysis.insights = aiInsights.insights;
-    analysis.recommendations = aiInsights.recommendations;
-
-    return analysis;
   }
 
   private async optimizeCandidateTargeting(campaignId: string, criteria: any): Promise<any> {
+    console.log(`Strategist Agent optimizing targeting for campaign ${campaignId}`);
+
     const { data: candidates } = await supabase
       .from('candidates')
       .select('*')
@@ -183,328 +368,206 @@ class MCPServer {
       .select('*')
       .eq('campaign_id', campaignId);
 
-    if (!candidates || !analytics) {
-      throw new Error('Data not found');
-    }
+    const optimizationPrompt = `Optimize candidate targeting for this campaign:
 
-    // Analyze high-performing candidate segments
-    const segments = this.identifyHighPerformingSegments(candidates, analytics);
-    
-    // Generate targeting recommendations
-    const recommendations = await this.generateTargetingRecommendations(segments, criteria);
+Total Candidates: ${candidates?.length || 0}
+Current Criteria: ${JSON.stringify(criteria)}
+Historical Performance: ${analytics?.length || 0} events tracked
+
+Provide strategic recommendations for:
+1. Audience segmentation
+2. Targeting refinements
+3. Priority groups to focus on
+4. Expected impact of optimizations`;
+
+    const strategy = await this.strategistAgent(optimizationPrompt);
+
+    const segments = candidates?.reduce((acc: any, candidate: any) => {
+      const key = candidate.status || 'unknown';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
 
     return {
       campaignId,
-      segments,
-      recommendations,
-      optimizedCriteria: recommendations.optimizedCriteria
+      currentSegments: segments,
+      ...strategy,
+      optimizedBy: "Strategist Agent",
+      timestamp: new Date().toISOString()
     };
   }
 
   private async predictConversionRate(candidateData: any[], campaignType: string): Promise<any> {
-    const predictions = candidateData.map(candidate => {
-      let score = 0.15; // Base conversion rate
+    console.log(`Predictor Agent forecasting conversion rates for ${candidateData.length} candidates`);
 
-      // Scoring factors
-      if (candidate.email) score += 0.1;
-      if (candidate.phone) score += 0.08;
-      if (candidate.course) score += 0.12;
-      if (candidate.city) score += 0.05;
+    const predictionPrompt = `Predict conversion rates for this campaign:
 
-      // Campaign type adjustments
-      if (campaignType === 'enrollment') score *= 1.2;
-      if (campaignType === 'event') score *= 0.8;
-      if (campaignType === 'information') score *= 0.6;
+Campaign Type: ${campaignType}
+Number of Candidates: ${candidateData.length}
+Sample Data: ${JSON.stringify(candidateData.slice(0, 5))}
 
-      return {
-        candidateId: candidate.id,
-        predictedConversionRate: Math.min(0.95, score),
-        confidence: this.calculateConfidence(candidate),
-        factors: this.getConversionFactors(candidate)
-      };
-    });
+Provide:
+1. Expected conversion rate with confidence level
+2. Key factors influencing conversion
+3. Timeline for expected results
+4. Specific predictions for different segments`;
+
+    const predictions = await this.predictorAgent(predictionPrompt);
 
     return {
-      predictions,
-      averagePredictedRate: predictions.reduce((sum, p) => sum + p.predictedConversionRate, 0) / predictions.length,
-      highPotentialCandidates: predictions.filter(p => p.predictedConversionRate > 0.4),
-      recommendations: this.generatePredictionRecommendations(predictions)
+      campaignType,
+      candidateCount: candidateData.length,
+      ...predictions,
+      predictedBy: "Predictor Agent",
+      generatedAt: new Date().toISOString()
     };
   }
 
   private async generateCommunicationStrategy(candidateProfile: any, campaignGoals: any): Promise<any> {
-    const strategy = {
+    console.log("Multi-agent communication strategy generation");
+
+    // Use all three agents for comprehensive strategy
+    const analysisPrompt = `Analyze this candidate profile for communication strategy:
+Profile: ${JSON.stringify(candidateProfile)}
+Goals: ${JSON.stringify(campaignGoals)}`;
+
+    const [analysis, strategy, predictions] = await Promise.all([
+      this.analystAgent(analysisPrompt),
+      this.strategistAgent(`Create communication strategy for: ${JSON.stringify(candidateProfile)}`),
+      this.predictorAgent(`Predict engagement for profile: ${JSON.stringify(candidateProfile)}`)
+    ]);
+
+    return {
       candidateId: candidateProfile.id,
-      personalizedApproach: this.generatePersonalizedApproach(candidateProfile),
-      channelStrategy: this.determineOptimalChannels(candidateProfile),
-      timing: this.optimizeTiming(candidateProfile),
-      content: await this.generatePersonalizedContent(candidateProfile, campaignGoals),
-      followUpSequence: this.createFollowUpSequence(candidateProfile)
-    };
-
-    return strategy;
-  }
-
-  private calculateRate(analytics: any[], successEvent: string, totalEvent: string): number {
-    const success = analytics.filter(a => a.event_type === successEvent).length;
-    const total = analytics.filter(a => a.event_type === totalEvent).length;
-    return total > 0 ? success / total : 0;
-  }
-
-  private async generateAIInsights(analysis: any, campaign: any, candidates: any[], analytics: any[]): Promise<any> {
-    if (!GEMINI_API_KEY) {
-      return {
-        insights: ["AI insights unavailable - Gemini API key not configured"],
-        recommendations: ["Configure Gemini API key for AI-powered insights"]
-      };
-    }
-
-    const prompt = `
-    Analyze this campaign performance data and provide insights and recommendations:
-    
-    Campaign: ${campaign.name} (${campaign.type})
-    Total Candidates: ${analysis.metrics.totalCandidates}
-    Conversion Rate: ${(analysis.performance.overallConversionRate * 100).toFixed(2)}%
-    Email Open Rate: ${(analysis.performance.emailOpenRate * 100).toFixed(2)}%
-    Call Answer Rate: ${(analysis.performance.callAnswerRate * 100).toFixed(2)}%
-    
-    Please provide:
-    1. Key insights about performance patterns
-    2. Specific recommendations for improvement
-    3. Potential issues or opportunities
-    
-    Respond in JSON format with "insights" and "recommendations" arrays.
-    `;
-
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
-
-      const data = await response.json();
-      const aiResponse = data.candidates[0].content.parts[0].text;
-      
-      try {
-        return JSON.parse(aiResponse);
-      } catch {
-        return {
-          insights: [aiResponse.split('\n')[0] || "Performance analysis completed"],
-          recommendations: [aiResponse.split('\n')[1] || "Continue monitoring campaign metrics"]
-        };
-      }
-    } catch (error) {
-      console.error('AI insights error:', error);
-      return {
-        insights: ["AI analysis temporarily unavailable"],
-        recommendations: ["Review performance metrics manually"]
-      };
-    }
-  }
-
-  private identifyHighPerformingSegments(candidates: any[], analytics: any[]): any[] {
-    const segments = {};
-    
-    // Group by different criteria
-    ['course', 'city', 'status'].forEach(criteria => {
-      candidates.forEach(candidate => {
-        const key = `${criteria}:${candidate[criteria]}`;
-        if (!segments[key]) {
-          segments[key] = { criteria, value: candidate[criteria], candidates: [], conversions: 0 };
-        }
-        segments[key].candidates.push(candidate);
-        if (candidate.response_received) segments[key].conversions++;
-      });
-    });
-
-    // Calculate conversion rates and filter high-performing segments
-    return Object.values(segments)
-      .map((segment: any) => ({
-        ...segment,
-        conversionRate: segment.conversions / segment.candidates.length,
-        size: segment.candidates.length
-      }))
-      .filter(segment => segment.conversionRate > 0.2 && segment.size >= 5)
-      .sort((a, b) => b.conversionRate - a.conversionRate);
-  }
-
-  private async generateTargetingRecommendations(segments: any[], criteria: any): Promise<any> {
-    return {
-      topSegments: segments.slice(0, 3),
-      optimizedCriteria: {
-        primaryTargets: segments.filter(s => s.conversionRate > 0.4).map(s => ({ [s.criteria]: s.value })),
-        secondaryTargets: segments.filter(s => s.conversionRate > 0.25 && s.conversionRate <= 0.4).map(s => ({ [s.criteria]: s.value })),
-        avoid: segments.filter(s => s.conversionRate < 0.1).map(s => ({ [s.criteria]: s.value }))
-      },
-      estimatedImprovement: segments.length > 0 ? (segments[0].conversionRate - 0.15) * 100 : 0
+      analysis,
+      strategy,
+      predictions,
+      generatedBy: "Multi-Agent Crew (Analyst + Strategist + Predictor)",
+      timestamp: new Date().toISOString()
     };
   }
 
-  private calculateConfidence(candidate: any): number {
-    let confidence = 0.5;
-    
-    if (candidate.email && candidate.phone) confidence += 0.2;
-    if (candidate.course) confidence += 0.15;
-    if (candidate.city) confidence += 0.1;
-    if (candidate.status === 'active') confidence += 0.05;
-    
-    return Math.min(0.95, confidence);
-  }
-
-  private getConversionFactors(candidate: any): string[] {
-    const factors = [];
-    
-    if (candidate.email) factors.push('Has email contact');
-    if (candidate.phone) factors.push('Has phone contact');
-    if (candidate.course) factors.push('Course interest specified');
-    if (candidate.city) factors.push('Location data available');
-    
-    return factors;
-  }
-
-  private generatePredictionRecommendations(predictions: any[]): string[] {
-    const recommendations = [];
-    
-    const highPotential = predictions.filter(p => p.predictedConversionRate > 0.4).length;
-    const lowPotential = predictions.filter(p => p.predictedConversionRate < 0.2).length;
-    
-    if (highPotential > 0) {
-      recommendations.push(`Focus on ${highPotential} high-potential candidates first`);
-    }
-    
-    if (lowPotential > predictions.length * 0.3) {
-      recommendations.push('Consider refining targeting criteria to reduce low-potential candidates');
-    }
-    
-    recommendations.push('Implement personalized communication strategies for each segment');
-    
-    return recommendations;
-  }
-
-  private generatePersonalizedApproach(candidateProfile: any): any {
-    return {
-      tone: candidateProfile.course?.includes('engineering') ? 'technical' : 'friendly',
-      focus: candidateProfile.course ? 'course-specific' : 'general',
-      urgency: candidateProfile.status === 'hot_lead' ? 'high' : 'medium'
-    };
-  }
-
-  private determineOptimalChannels(candidateProfile: any): string[] {
-    const channels = [];
-    
-    if (candidateProfile.email) channels.push('email');
-    if (candidateProfile.phone) channels.push('voice');
-    if (candidateProfile.phone) channels.push('whatsapp');
-    
-    return channels;
-  }
-
-  private optimizeTiming(candidateProfile: any): any {
-    return {
-      bestDays: ['Tuesday', 'Wednesday', 'Thursday'],
-      bestHours: candidateProfile.course?.includes('working') ? ['18:00', '19:00', '20:00'] : ['10:00', '14:00', '16:00'],
-      timezone: candidateProfile.city || 'IST'
-    };
-  }
-
-  private async generatePersonalizedContent(candidateProfile: any, campaignGoals: any): Promise<any> {
-    return {
-      emailSubject: `Exciting ${candidateProfile.course || 'Educational'} Opportunities Await!`,
-      emailBody: `Hi ${candidateProfile.name}, we have customized ${candidateProfile.course || 'course'} options for you...`,
-      voiceScript: `Hello ${candidateProfile.name}, I'm calling about the ${candidateProfile.course || 'program'} you inquired about...`,
-      whatsappMessage: `Hi ${candidateProfile.name}! Quick update on ${candidateProfile.course || 'your inquiry'}...`
-    };
-  }
-
-  private createFollowUpSequence(candidateProfile: any): any[] {
-    return [
-      { day: 0, channel: 'email', action: 'initial_contact' },
-      { day: 2, channel: 'voice', action: 'follow_up_call' },
-      { day: 5, channel: 'whatsapp', action: 'reminder_message' },
-      { day: 10, channel: 'email', action: 'final_offer' }
-    ];
-  }
 
   private listResources() {
     return {
       resources: [
         {
-          uri: "campaigns://analytics",
-          name: "Campaign Analytics",
-          description: "Real-time campaign performance data"
+          uri: "campaign://active",
+          name: "Active Campaigns",
+          description: "List of all active campaigns",
+          mimeType: "application/json"
         },
         {
-          uri: "candidates://profiles",
-          name: "Candidate Profiles",
-          description: "Detailed candidate information and history"
+          uri: "candidates://all",
+          name: "All Candidates",
+          description: "Complete candidate database",
+          mimeType: "application/json"
         },
         {
-          uri: "models://conversion",
-          name: "Conversion Models",
-          description: "Predictive models for conversion analysis"
+          uri: "analytics://recent",
+          name: "Recent Analytics",
+          description: "Recent campaign analytics events",
+          mimeType: "application/json"
         }
       ]
     };
   }
 
   private async readResource(uri: string): Promise<any> {
-    // Implementation would fetch specific resource data
-    return { uri, data: "Resource data would be fetched here" };
+    const [type, filter] = uri.split("://");
+
+    switch (type) {
+      case "campaign":
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('status', filter === 'active' ? 'active' : filter);
+        return { uri, data: campaigns };
+
+      case "candidates":
+        const { data: candidates } = await supabase
+          .from('candidates')
+          .select('*');
+        return { uri, data: candidates };
+
+      case "analytics":
+        const { data: analytics } = await supabase
+          .from('campaign_analytics')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        return { uri, data: analytics };
+
+      default:
+        throw new Error(`Unknown resource type: ${type}`);
+    }
   }
 
   private listPrompts() {
     return {
       prompts: [
         {
-          name: "analyze_performance",
-          description: "Analyze campaign performance with AI insights"
+          name: "campaign_analysis",
+          description: "Agent-powered campaign performance analysis",
+          arguments: [
+            { name: "campaignId", description: "Campaign to analyze", required: true }
+          ]
         },
         {
-          name: "optimize_targeting",
-          description: "Optimize candidate targeting strategy"
+          name: "optimization_strategy",
+          description: "Agent-generated optimization strategy",
+          arguments: [
+            { name: "campaignId", description: "Campaign to optimize", required: true }
+          ]
         }
       ]
     };
   }
 
   private async getPrompt(name: string, args: any): Promise<any> {
-    // Return prompt templates for different analysis types
-    return { name, template: "Prompt template would be returned here", args };
+    switch (name) {
+      case "campaign_analysis":
+        return {
+          prompt: `Analyze campaign ${args.campaignId} using multi-agent system`,
+          agentsInvolved: ["Analyst Agent", "Strategist Agent"]
+        };
+      case "optimization_strategy":
+        return {
+          prompt: `Generate optimization strategy for campaign ${args.campaignId}`,
+          agentsInvolved: ["Strategist Agent", "Predictor Agent"]
+        };
+      default:
+        throw new Error(`Unknown prompt: ${name}`);
+    }
   }
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { method, params }: MCPRequest = await req.json();
-    const mcpServer = new MCPServer();
     
-    const result = await mcpServer.handleRequest(method, params || {});
+    console.log(`Agent-based MCP request: ${method}`);
+    
+    const server = new AgentBasedMCPServer();
+    const result = await server.handleRequest(method, params);
 
-    return new Response(JSON.stringify({
-      success: true,
-      result
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: any) {
-    console.error("Error in mcp-server function:", error);
-    
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    console.error('Agent-based MCP error:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 };
 

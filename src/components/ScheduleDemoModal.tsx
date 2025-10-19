@@ -79,7 +79,7 @@ export const ScheduleDemoModal = ({ open, onOpenChange }: ScheduleDemoModalProps
 
       toast({
         title: "Demo scheduled successfully!",
-        description: "We'll send you a calendar invite within the next hour. Check yashprofessionalai@gmail.com",
+        description: "We'll send you a calendar invite within the next hour. Check admitconnectAI@gmail.com",
       });
 
       // Reset form

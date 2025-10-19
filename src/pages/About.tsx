@@ -205,22 +205,22 @@ const About = () => {
           
           <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
             <a 
-              href="mailto:yashsharmaofficialmail@gmail.com"
+              href="mailto:admitconnectAI@gmail.com"
               className="flex flex-col items-center p-6 bg-card rounded-lg border border-border/50 hover:border-primary/50 transition-all hover:shadow-lg group"
             >
               <Mail className="w-12 h-12 text-primary mb-4 group-hover:scale-110 transition-transform" />
               <h3 className="font-semibold mb-2">Email</h3>
-              <p className="text-muted-foreground text-sm text-center break-all">yashsharmaofficialmail@gmail.com</p>
+              <p className="text-muted-foreground text-sm text-center break-all">admitconnectAI@gmail.com</p>
             </a>
             <a 
-              href="https://wa.me/917060595970"
+              href="https://wa.me/918439663198"
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-col items-center p-6 bg-card rounded-lg border border-border/50 hover:border-primary/50 transition-all hover:shadow-lg group"
             >
               <MessageCircle className="w-12 h-12 text-primary mb-4 group-hover:scale-110 transition-transform" />
               <h3 className="font-semibold mb-2">WhatsApp</h3>
-              <p className="text-muted-foreground text-sm">+91 7060595970</p>
+              <p className="text-muted-foreground text-sm">+91 8439663198</p>
             </a>
           </div>
         </div>

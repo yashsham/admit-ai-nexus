@@ -221,7 +221,7 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
         </form>
 
         <div className="text-xs text-muted-foreground text-center">
-          We typically respond within 24 hours. All messages are sent to yashprofessionalai@gmail.com
+          We typically respond within 24 hours. All messages are sent to admitconnectAI@gmail.com
         </div>
       </DialogContent>
     </Dialog>

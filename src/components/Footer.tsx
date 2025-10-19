@@ -42,20 +42,20 @@ const Footer = () => {
             <h3 className="font-semibold text-lg">Get in Touch</h3>
             <div className="flex flex-col space-y-3">
               <a 
-                href="mailto:yashsharmaofficialmail@gmail.com"
+                href="mailto:admitconnectAI@gmail.com"
                 className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors group"
               >
                 <Mail className="w-5 h-5 group-hover:text-primary transition-colors" />
-                <span className="text-sm">yashsharmaofficialmail@gmail.com</span>
+                <span className="text-sm">admitconnectAI@gmail.com</span>
               </a>
               <a
-                href="https://wa.me/917060595970"
+                href="https://wa.me/918439663198"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors group"
               >
                 <MessageCircle className="w-5 h-5 group-hover:text-primary transition-colors" />
-                <span className="text-sm">+91 7060595970</span>
+                <span className="text-sm">+91 8439663198</span>
               </a>
             </div>
             <div className="flex space-x-3 pt-2">
@@ -65,7 +65,7 @@ const Footer = () => {
                 asChild
                 className="hover-lift"
               >
-                <a href="mailto:yashsharmaofficialmail@gmail.com">
+                <a href="mailto:admitconnectAI@gmail.com">
                   <Mail className="w-4 h-4 mr-2" />
                   Email Us
                 </a>
@@ -77,7 +77,7 @@ const Footer = () => {
                 className="hover-lift"
               >
                 <a 
-                  href="https://wa.me/917060595970" 
+                  href="https://wa.me/918439663198" 
                   target="_blank" 
                   rel="noopener noreferrer"
                 >

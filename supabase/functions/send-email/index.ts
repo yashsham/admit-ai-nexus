@@ -29,13 +29,13 @@ const handler = async (req: Request): Promise<Response> => {
       email,
       message,
       type,
-      destination: 'yashprofessionalai@gmail.com'
+      destination: 'admitconnectAI@gmail.com'
     });
 
     // Simulate email sending success
     return new Response(JSON.stringify({
       success: true,
-      message: 'Email sent successfully to yashprofessionalai@gmail.com'
+      message: 'Email sent successfully to admitconnectAI@gmail.com'
     }), {
       status: 200,
       headers: {

@@ -82,8 +82,8 @@ export const DemoModal = ({ open, onOpenChange }: DemoModalProps) => {
           {/* Video Demos */}
           <div className="grid md:grid-cols-3 gap-4">
             {demoVideos.map((video, index) => (
-              <Card key={index} className="p-4 hover-lift cursor-pointer" onClick={() => openVideo(video.url)}>
-                <div className="space-y-3">
+              <Card key={index} className="p-4 hover-lift cursor-pointer h-full flex flex-col" onClick={() => openVideo(video.url)}>
+                <div className="space-y-3 flex flex-col h-full">
                   <div className="relative">
                     <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
                       <Play className="w-8 h-8 text-primary" />
@@ -92,7 +92,7 @@ export const DemoModal = ({ open, onOpenChange }: DemoModalProps) => {
                       {video.duration}
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 flex-1">
                     <h4 className="font-semibold text-sm line-clamp-2">{video.title}</h4>
                     <p className="text-xs text-muted-foreground line-clamp-2">{video.description}</p>
                   </div>

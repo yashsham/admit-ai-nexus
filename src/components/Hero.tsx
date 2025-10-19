@@ -161,15 +161,15 @@ const Hero = ({ onWatchDemoClick, onScheduleDemoClick }: HeroProps) => {
                   key={index} 
                   direction="up" 
                   delay={index * 100}
-                  className="group"
+                  className="group h-full"
                 >
-                  <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50 hover-lift glow-border group-hover:scale-[1.02] transition-all duration-500 shine-effect">
-                    <div className="space-y-4">
+                  <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50 hover-lift glow-border group-hover:scale-[1.02] transition-all duration-500 shine-effect h-full flex flex-col">
+                    <div className="space-y-4 flex-1 flex flex-col">
                       <div className="w-12 h-12 bg-ai-gradient rounded-lg flex items-center justify-center group-hover:rotate-6 transition-transform duration-300 animate-particle-float">
                         <Icon className="w-6 h-6 text-white" />
                       </div>
                       <h3 className="text-xl font-semibold text-card-foreground group-hover:text-primary transition-colors duration-300">{feature.title}</h3>
-                      <p className="text-muted-foreground">{feature.description}</p>
+                      <p className="text-muted-foreground flex-1">{feature.description}</p>
                     </div>
                   </Card>
                 </ScrollReveal>

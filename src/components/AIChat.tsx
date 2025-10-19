@@ -115,18 +115,31 @@ export const AIChat = ({ sessionId, onNewSession }: AIChatProps) => {
   };
 
   const generateAIResponse = async (userMessage: string): Promise<string> => {
-    // Simulate AI response generation
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+    try {
+      const conversationHistory = messages.map(msg => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }));
 
-    const responses = [
-      "That's a great question! For effective admission campaigns, I recommend focusing on personalized messaging that highlights your unique program benefits. Would you like me to help you create a specific template?",
-      "Based on your requirements, I suggest using a multi-channel approach combining WhatsApp and voice calls. This typically increases response rates by 40-60%. Shall we design a campaign strategy?",
-      "For optimal results, segment your candidates by their interests and academic background. This allows for more targeted messaging. Would you like me to help you create candidate segments?",
-      "I can help you craft compelling messages that resonate with prospective students. What specific program or course are you promoting in this campaign?",
-      "Timing is crucial for admission campaigns. I recommend reaching out during key decision periods. Would you like me to suggest an optimal schedule for your outreach?"
-    ];
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: { 
+          message: userMessage,
+          conversationHistory 
+        }
+      });
 
-    return responses[Math.floor(Math.random() * responses.length)];
+      if (error) {
+        console.error('AI chat error:', error);
+        throw error;
+      }
+
+      return data.response || "I apologize, I'm having trouble responding right now. Please try again.";
+    } catch (error) {
+      console.error('Error calling AI chat:', error);
+      throw new Error('Failed to get AI response');
+    }
   };
 
   const handleSend = async () => {

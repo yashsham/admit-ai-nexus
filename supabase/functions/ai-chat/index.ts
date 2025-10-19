@@ -139,10 +139,11 @@ CORE CAPABILITIES:
 - Data-driven decision making and optimization
 
 RESPONSE STYLE:
+- Direct and to-the-point answers (2-4 sentences maximum)
+- Brief, accurate, and specific
+- Answer questions directly, don't give instructions on how to answer
 - Professional yet encouraging
-- Specific and actionable
-- Data-informed when relevant
-- Collaborative across agent perspectives`;
+- Only provide detailed explanations if explicitly asked`;
 
     // Convert conversation history
     const conversationText = conversationHistory.slice(-6).map(msg => 

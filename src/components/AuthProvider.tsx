@@ -53,6 +53,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               createOrUpdateProfile(session.user);
             }, 0);
           }
+          // Navigate to dashboard after successful sign in
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 100);
         } else if (event === 'SIGNED_OUT') {
           // Clear any local storage if needed
           localStorage.removeItem('sb-imlbkhgquajmnqgbvgwj-auth-token');

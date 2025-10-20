@@ -54,16 +54,16 @@ const Auth = () => {
         if (formData.password !== formData.confirmPassword) {
           throw new Error("Passwords don't match");
         }
-        if (formData.password.length < 6) {
-          throw new Error("Password must be at least 6 characters");
+        if (formData.password.length < 8) {
+          throw new Error("Password must be at least 8 characters");
         }
 
         const fullName = `${formData.firstName} ${formData.lastName}`.trim();
         await signUp(formData.email, formData.password, fullName);
-        navigate("/dashboard");
+        // Don't auto-navigate - user needs to verify email
       } else {
         await signIn(formData.email, formData.password);
-        navigate("/dashboard");
+        // Navigation handled by auth state change
       }
     } catch (err: any) {
       console.error('Auth error:', err);

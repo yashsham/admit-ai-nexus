@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/components/AuthProvider";
+import { AuthNavigationHandler } from "@/components/AuthNavigationHandler";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ChatWidget } from "@/components/ChatWidget";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -40,6 +41,7 @@ const App = () => (
               <ChatWidget />
               <PWAInstallPrompt />
               <BrowserRouter>
+                <AuthNavigationHandler />
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />

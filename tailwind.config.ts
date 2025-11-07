@@ -73,7 +73,8 @@ export default {
 				'ai-gradient-subtle': 'var(--ai-gradient-subtle)'
 			},
 			fontFamily: {
-				inter: ['Inter', 'sans-serif']
+				sans: ['Plus Jakarta Sans', 'sans-serif'],
+				jakarta: ['Plus Jakarta Sans', 'sans-serif']
 			},
 			boxShadow: {
 				'elegant': 'var(--shadow-elegant)',

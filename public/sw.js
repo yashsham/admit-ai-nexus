@@ -5,7 +5,7 @@ const STATIC_CACHE_URLS = [
   '/about',
   '/our-services',
   '/manifest.json',
-  '/favicon.ico'
+  '/app-logo.png'
 ];
 
 // Install Service Worker
@@ -48,8 +48,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'New update from AdmitConnect AI',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/app-logo.png',
+    badge: '/app-logo.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -59,12 +59,12 @@ self.addEventListener('push', (event) => {
       {
         action: 'view',
         title: 'View',
-        icon: '/favicon.ico'
+        icon: '/app-logo.png'
       },
       {
         action: 'close',
         title: 'Close',
-        icon: '/favicon.ico'
+        icon: '/app-logo.png'
       }
     ]
   };

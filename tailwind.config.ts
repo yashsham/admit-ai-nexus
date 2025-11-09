@@ -26,7 +26,9 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))',
+					hover: 'hsl(var(--primary-hover))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -65,12 +67,16 @@ export default {
 				ai: {
 					purple: 'hsl(var(--ai-purple))',
 					blue: 'hsl(var(--ai-blue))',
-					teal: 'hsl(var(--ai-teal))'
+					cyan: 'hsl(var(--ai-cyan))',
+					teal: 'hsl(var(--ai-teal))',
+					pink: 'hsl(var(--ai-pink))'
 				}
 			},
 			backgroundImage: {
 				'ai-gradient': 'var(--ai-gradient)',
-				'ai-gradient-subtle': 'var(--ai-gradient-subtle)'
+				'ai-gradient-subtle': 'var(--ai-gradient-subtle)',
+				'ai-gradient-shine': 'var(--ai-gradient-shine)',
+				'ai-gradient-glow': 'var(--ai-gradient-glow)'
 			},
 			fontFamily: {
 				sans: ['Plus Jakarta Sans', 'sans-serif'],

@@ -163,13 +163,14 @@ const Hero = ({ onWatchDemoClick, onScheduleDemoClick }: HeroProps) => {
                   delay={index * 100}
                   className="group h-full"
                 >
-                  <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50 hover-lift glow-border group-hover:scale-[1.02] transition-all duration-500 shine-effect h-full flex flex-col">
-                    <div className="space-y-4 flex-1 flex flex-col">
-                      <div className="w-12 h-12 bg-ai-gradient rounded-lg flex items-center justify-center group-hover:rotate-6 transition-transform duration-300 animate-particle-float">
-                        <Icon className="w-6 h-6 text-white" />
+                  <Card className="relative p-6 bg-card/50 backdrop-blur-sm border-border/50 hover-lift glow-border shine-effect h-full flex flex-col overflow-hidden transition-all duration-500 before:absolute before:inset-0 before:bg-ai-gradient-glow before:opacity-0 before:transition-opacity before:duration-500 hover:before:opacity-100 hover:shadow-glow">
+                    <div className="space-y-4 flex-1 flex flex-col relative z-10">
+                      <div className="relative w-14 h-14 bg-ai-gradient-shine rounded-xl flex items-center justify-center group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 shadow-glow">
+                        <div className="absolute inset-0 bg-ai-gradient-shine rounded-xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500"></div>
+                        <Icon className="w-7 h-7 text-white relative z-10 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all duration-500" />
                       </div>
-                      <h3 className="text-xl font-semibold text-card-foreground group-hover:text-primary transition-colors duration-300">{feature.title}</h3>
-                      <p className="text-muted-foreground flex-1">{feature.description}</p>
+                      <h3 className="text-xl font-semibold text-card-foreground group-hover:text-primary-glow transition-colors duration-300 group-hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]">{feature.title}</h3>
+                      <p className="text-muted-foreground flex-1 group-hover:text-foreground/90 transition-colors duration-300">{feature.description}</p>
                     </div>
                   </Card>
                 </ScrollReveal>

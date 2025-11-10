@@ -21,56 +21,10 @@ export const PaymentModal = ({ open, onOpenChange }: PaymentModalProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleRazorpayPayment = () => {
-    if (typeof window.Razorpay === 'undefined') {
-      // Load Razorpay script
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => initializePayment();
-      document.body.appendChild(script);
-    } else {
-      initializePayment();
-    }
-  };
-
-  const initializePayment = () => {
-    const options = {
-      key: 'rzp_test_DEMO_KEY', // Demo key - replace with actual
-      amount: 299900, // ₹2999 in paise
-      currency: 'INR',
-      name: 'AdmitConnect AI',
-      description: 'Pro Plan Subscription',
-      image: '/favicon.ico',
-      prefill: {
-        name: user?.user_metadata?.full_name || 'User',
-        email: user?.email || '',
-      },
-      theme: {
-        color: '#3B82F6'
-      },
-      handler: function (response: any) {
-        // Payment successful
-        toast({
-          title: "Payment Successful!",
-          description: "Welcome to AdmitConnect AI Pro! 🎉",
-        });
-        onOpenChange(false);
-
-        // Here you would typically update the user's subscription in your database
-        console.log('Payment ID:', response.razorpay_payment_id);
-      },
-      modal: {
-        ondismiss: function () {
-          toast({
-            title: "Payment Cancelled",
-            description: "You can upgrade anytime from your dashboard.",
-          });
-        }
-      }
-    };
-
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+  const handlePayment = () => {
+    // Redirect to Razorpay payment page
+    window.open('https://pages.rozorpay.com/xQCtGIuW', '_blank');
+    onOpenChange(false);
   };
 
   const plans = [
@@ -202,7 +156,7 @@ export const PaymentModal = ({ open, onOpenChange }: PaymentModalProps) => {
                   <Button
                     variant={plan.popular ? "hero" : "outline"}
                     size="lg"
-                    onClick={handleRazorpayPayment}
+                    onClick={handlePayment}
                     className="w-full mt-6"
                   >
                     {plan.popular ? "Choose Pro" : `Get ${plan.name}`}

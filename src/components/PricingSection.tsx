@@ -134,7 +134,7 @@ const PricingSection = ({ onContactClick, onScheduleClick }: PricingSectionProps
                   <Button
                     variant={plan.buttonVariant}
                     size="lg"
-                    onClick={() => navigate("/auth")}
+                    onClick={() => window.open('https://pages.rozorpay.com/xQCtGIuW', '_blank')}
                     className="w-full hover-lift"
                   >
                     Get Started with {plan.name}

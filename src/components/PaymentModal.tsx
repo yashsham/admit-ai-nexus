@@ -23,7 +23,7 @@ export const PaymentModal = ({ open, onOpenChange }: PaymentModalProps) => {
 
   const handlePayment = () => {
     // Redirect to Razorpay payment page
-    window.open('https://pages.rozorpay.com/xQCtGIuW', '_blank');
+    window.open('https://rzp.io/rzp/xQCtGIuW', '_blank');
     onOpenChange(false);
   };
 

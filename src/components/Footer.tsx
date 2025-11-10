@@ -42,7 +42,9 @@ const Footer = () => {
             <h3 className="font-semibold text-lg">Get in Touch</h3>
             <div className="flex flex-col space-y-3">
               <a 
-                href="mailto:admitconnectAI@gmail.com"
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=admitconnectAI@gmail.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors group"
               >
                 <Mail className="w-5 h-5 group-hover:text-primary transition-colors" />
@@ -65,7 +67,11 @@ const Footer = () => {
                 asChild
                 className="hover-lift"
               >
-                <a href="mailto:admitconnectAI@gmail.com">
+                <a 
+                  href="https://mail.google.com/mail/?view=cm&fs=1&to=admitconnectAI@gmail.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Mail className="w-4 h-4 mr-2" />
                   Email Us
                 </a>

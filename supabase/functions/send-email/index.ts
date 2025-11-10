@@ -1,4 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,8 +25,6 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { name, email, message, type = 'contact' }: EmailRequest = await req.json();
 
-    // For now, we'll just log the email data
-    // In production, you would integrate with Resend or another email service
     console.log(`Email received:`, {
       name,
       email,
@@ -32,7 +33,26 @@ const handler = async (req: Request): Promise<Response> => {
       destination: 'admitconnectAI@gmail.com'
     });
 
-    // Simulate email sending success
+    // Send email using Resend
+    const emailResponse = await resend.emails.send({
+      from: "AdmitConnect AI <onboarding@resend.dev>",
+      to: ["admitconnectAI@gmail.com"],
+      replyTo: email,
+      subject: type === 'demo_request' 
+        ? `Demo Request from ${name}` 
+        : `Contact Form Submission from ${name}`,
+      html: `
+        <h2>${type === 'demo_request' ? 'Demo Request' : 'Contact Form Submission'}</h2>
+        <p><strong>From:</strong> ${name} (${email})</p>
+        <p><strong>Message:</strong></p>
+        <p>${message.replace(/\n/g, '<br>')}</p>
+        <hr>
+        <p><small>Reply directly to this email to respond to ${name}</small></p>
+      `,
+    });
+
+    console.log("Email sent successfully:", emailResponse);
+
     return new Response(JSON.stringify({
       success: true,
       message: 'Email sent successfully to admitconnectAI@gmail.com'

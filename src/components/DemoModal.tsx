@@ -111,7 +111,11 @@ export const DemoModal = ({ open, onOpenChange }: DemoModalProps) => {
             <p className="text-muted-foreground mb-4">
               Start your free trial today and see the results within the first week.
             </p>
-            <Button variant="hero" className="hover-lift">
+            <Button 
+              variant="hero" 
+              className="hover-lift"
+              onClick={() => window.location.href = '/auth'}
+            >
               Start Free Trial
             </Button>
           </div>

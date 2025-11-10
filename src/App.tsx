@@ -22,6 +22,7 @@ import OurServices from "./pages/OurServices";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/AdminDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => {
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/our-services" element={<OurServices />} />
                     <Route

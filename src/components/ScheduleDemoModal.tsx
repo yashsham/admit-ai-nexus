@@ -47,16 +47,6 @@ export const ScheduleDemoModal = ({ open, onOpenChange }: ScheduleDemoModalProps
     setIsSubmitting(true);
 
     try {
-      // Send email via edge function
-      await supabase.functions.invoke('send-email', {
-        body: {
-          name,
-          email,
-          message: `Demo Request - ${timeSlot}\n\nCompany: ${company}\nRole: ${role}\n\nMessage: ${message}`,
-          type: 'demo_request'
-        }
-      });
-
       // Store in database
       const { error } = await supabase
         .from('demo_requests')

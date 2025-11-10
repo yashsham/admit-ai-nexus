@@ -108,16 +108,6 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
     setIsSubmitting(true);
 
     try {
-      // Send email via edge function
-      await supabase.functions.invoke('send-email', {
-        body: {
-          name,
-          email,
-          message,
-          type: 'contact'
-        }
-      });
-
       // Store in database
       const { error } = await supabase
         .from('contact_submissions')

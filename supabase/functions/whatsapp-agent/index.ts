@@ -132,16 +132,23 @@ class MessagingAgent {
   }
 
   private async validateMessagingSetup(messageType?: string): Promise<void> {
+    const whatsappAccessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    const whatsappPhoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
 
-    if (!twilioAccountSid || !twilioAuthToken) {
-      throw new Error('Twilio credentials not configured');
-    }
-
     if (messageType === 'whatsapp') {
-      console.log(`[MessagingAgent] WhatsApp messaging validated`);
+      if (whatsappAccessToken && whatsappPhoneNumberId) {
+        console.log(`[MessagingAgent] Meta WhatsApp Business API validated`);
+      } else if (twilioAccountSid && twilioAuthToken) {
+        console.log(`[MessagingAgent] Twilio WhatsApp validated`);
+      } else {
+        throw new Error('WhatsApp credentials not configured');
+      }
     } else {
+      if (!twilioAccountSid || !twilioAuthToken) {
+        throw new Error('Twilio credentials not configured for SMS');
+      }
       console.log(`[MessagingAgent] SMS messaging validated`);
     }
   }
@@ -192,6 +199,8 @@ class MessagingAgent {
   }
 
   private async sendMessage(candidate: any, campaign: any, config: MessagingAgentConfig) {
+    const whatsappAccessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    const whatsappPhoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
 
@@ -203,25 +212,64 @@ class MessagingAgent {
 
       console.log(`[MessagingAgent ${this.agentId}] Sending ${config.messageType || 'WhatsApp'} to ${candidate.phone}`);
 
-      // Prepare message parameters based on type
-      const messageParams = this.prepareMessageParams(candidate, personalizedMessage, config);
+      let messageData: any;
+      let messageSid: string;
 
-      // Send message via Twilio
-      const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams(messageParams)
-      });
+      // Use Meta WhatsApp Business API if available, otherwise fall back to Twilio
+      if (config.messageType !== 'sms' && whatsappAccessToken && whatsappPhoneNumberId) {
+        // Send via Meta WhatsApp Business API
+        console.log(`[MessagingAgent ${this.agentId}] Using Meta WhatsApp Business API`);
+        
+        // Format phone number (remove + if present)
+        const phoneNumber = candidate.phone.replace(/^\+/, '');
+        
+        const whatsappResponse = await fetch(`https://graph.facebook.com/v18.0/${whatsappPhoneNumberId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${whatsappAccessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: phoneNumber,
+            type: 'text',
+            text: {
+              body: personalizedMessage
+            }
+          })
+        });
 
-      if (!twilioResponse.ok) {
-        const errorText = await twilioResponse.text();
-        throw new Error(`Twilio error: ${errorText}`);
+        if (!whatsappResponse.ok) {
+          const errorText = await whatsappResponse.text();
+          throw new Error(`Meta WhatsApp API error: ${errorText}`);
+        }
+
+        messageData = await whatsappResponse.json();
+        messageSid = messageData.messages?.[0]?.id || 'meta-whatsapp-message';
+        
+      } else {
+        // Send via Twilio (for SMS or WhatsApp fallback)
+        console.log(`[MessagingAgent ${this.agentId}] Using Twilio API`);
+        
+        const messageParams = this.prepareMessageParams(candidate, personalizedMessage, config);
+
+        const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams(messageParams)
+        });
+
+        if (!twilioResponse.ok) {
+          const errorText = await twilioResponse.text();
+          throw new Error(`Twilio error: ${errorText}`);
+        }
+
+        messageData = await twilioResponse.json();
+        messageSid = messageData.sid;
       }
-
-      const messageData = await twilioResponse.json();
       
       // Update candidate status
       const statusField = config.messageType === 'sms' ? 'sms_sent' : 'whatsapp_sent';
@@ -246,7 +294,7 @@ class MessagingAgent {
           channel: config.messageType || 'whatsapp',
           status: 'success',
           metadata: { 
-            message_sid: messageData.sid,
+            message_sid: messageSid,
             agentId: this.agentId,
             priority: config.priority || 'normal',
             messageLength: personalizedMessage.length,
@@ -259,7 +307,7 @@ class MessagingAgent {
         candidateId: candidate.id,
         phone: candidate.phone,
         status: 'sent',
-        messageSid: messageData.sid,
+        messageSid: messageSid,
         messageType: config.messageType || 'whatsapp',
         agentId: this.agentId
       };

@@ -20,3 +20,12 @@ verify_jwt = true
 
 [functions.campaign-orchestrator]
 verify_jwt = true
+
+[functions.college-counseling-crew]
+verify_jwt = true
+
+[functions.decision-engine]
+verify_jwt = true
+
+[functions.mcp-server]
+verify_jwt = false

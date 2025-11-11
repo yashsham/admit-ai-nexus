@@ -38,6 +38,7 @@ import { CampaignAnalytics } from "@/components/CampaignAnalytics";
 import { CampaignAutomation } from "@/components/CampaignAutomation";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { CampaignExecutor } from "@/components/CampaignExecutor";
+import { CollegeCounselingCrew } from "@/components/CollegeCounselingCrew";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -207,9 +208,10 @@ const Dashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+            <TabsTrigger value="ai-crew">AI Crew</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="automation">Automation</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -338,6 +340,10 @@ const Dashboard = () => {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="ai-crew">
+            <CollegeCounselingCrew />
           </TabsContent>
 
           <TabsContent value="analytics">

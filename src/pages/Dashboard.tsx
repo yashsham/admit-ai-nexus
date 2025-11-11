@@ -381,7 +381,6 @@ const Dashboard = () => {
             <DialogTitle>Upload Candidates</DialogTitle>
           </DialogHeader>
           <UploadCandidates 
-            campaignId={campaigns[0]?.id}
             onUploadComplete={() => {
               setActiveDialog(null);
               loadDashboardData();

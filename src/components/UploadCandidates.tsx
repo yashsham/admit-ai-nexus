@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,8 +27,36 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
   const [uploading, setUploading] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [preview, setPreview] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(campaignId || '');
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (!campaignId) {
+      loadCampaigns();
+    }
+  }, [campaignId]);
+
+  const loadCampaigns = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('id, name, status')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCampaigns(data || []);
+      if (data && data.length > 0 && !selectedCampaignId) {
+        setSelectedCampaignId(data[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading campaigns:', error);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -90,12 +119,13 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
   };
 
   const uploadCandidates = async () => {
-    if (!user || !campaignId || candidates.length === 0) return;
+    const activeCampaignId = campaignId || selectedCampaignId;
+    if (!user || !activeCampaignId || candidates.length === 0) return;
 
     setUploading(true);
     try {
       const candidateData = candidates.map(candidate => ({
-        campaign_id: campaignId,
+        campaign_id: activeCampaignId,
         name: candidate.name,
         phone: candidate.phone,
         email: candidate.email || null,
@@ -113,7 +143,7 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
       await supabase
         .from('campaigns')
         .update({ candidates_count: candidates.length })
-        .eq('id', campaignId);
+        .eq('id', activeCampaignId);
 
       toast({
         title: "Candidates uploaded successfully",
@@ -145,6 +175,32 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
             Upload a CSV or JSON file with candidate information. Required fields: name, phone
           </p>
         </div>
+
+        {!campaignId && campaigns.length === 0 && (
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="text-sm text-yellow-600 dark:text-yellow-400">
+              Please create a campaign first before uploading candidates.
+            </p>
+          </div>
+        )}
+
+        {!campaignId && campaigns.length > 0 && (
+          <div>
+            <Label htmlFor="campaign-select">Select Campaign</Label>
+            <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+              <SelectTrigger id="campaign-select" className="mt-2">
+                <SelectValue placeholder="Choose a campaign" />
+              </SelectTrigger>
+              <SelectContent>
+                {campaigns.map((campaign) => (
+                  <SelectItem key={campaign.id} value={campaign.id}>
+                    {campaign.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {!preview ? (
           <div>
@@ -214,7 +270,7 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
 
             <Button
               onClick={uploadCandidates}
-              disabled={uploading || !campaignId}
+              disabled={uploading || (!campaignId && !selectedCampaignId) || campaigns.length === 0}
               className="w-full"
               variant="hero"
             >

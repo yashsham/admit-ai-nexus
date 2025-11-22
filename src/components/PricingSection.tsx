@@ -86,11 +86,10 @@ const PricingSection = ({ onContactClick, onScheduleClick }: PricingSectionProps
           {plans.map((plan, index) => {
             const Icon = plan.icon;
             return (
-              <Card 
-                key={index} 
-                className={`relative p-8 bg-card/50 backdrop-blur-sm border-border/50 hover-lift ${
-                  plan.popular ? 'popular-glow glow-border' : ''
-                }`}
+              <Card
+                key={index}
+                className={`relative p-8 bg-card/50 backdrop-blur-sm border-border/50 hover-lift ${plan.popular ? 'popular-glow glow-border' : ''
+                  }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -134,7 +133,7 @@ const PricingSection = ({ onContactClick, onScheduleClick }: PricingSectionProps
                   <Button
                     variant={plan.buttonVariant}
                     size="lg"
-                    onClick={() => window.open('https://rzp.io/rzp/xQCtGIuW', '_blank')}
+                    onClick={() => window.open('https://rzp.io/rzp/DOVfKeU', '_blank')}
                     className="w-full hover-lift"
                   >
                     Get Started with {plan.name}
@@ -151,7 +150,7 @@ const PricingSection = ({ onContactClick, onScheduleClick }: PricingSectionProps
             Need a Custom Solution?
           </h3>
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            For enterprises with specific requirements, we offer custom solutions with dedicated support, 
+            For enterprises with specific requirements, we offer custom solutions with dedicated support,
             advanced integrations, and tailored features.
           </p>
           <Button variant="outline" size="lg" onClick={onContactClick} className="hover-lift">

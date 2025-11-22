@@ -13,6 +13,7 @@ interface PaymentModalProps {
 
 declare global {
   interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Razorpay: any;
   }
 }
@@ -23,7 +24,7 @@ export const PaymentModal = ({ open, onOpenChange }: PaymentModalProps) => {
 
   const handlePayment = () => {
     // Redirect to Razorpay payment page
-    window.open('https://rzp.io/rzp/xQCtGIuW', '_blank');
+    window.open('https://rzp.io/rzp/DOVfKeU', '_blank');
     onOpenChange(false);
   };
 
@@ -102,11 +103,10 @@ export const PaymentModal = ({ open, onOpenChange }: PaymentModalProps) => {
           {plans.map((plan, index) => {
             const Icon = plan.icon;
             return (
-              <Card 
-                key={index} 
-                className={`relative p-6 ${
-                  plan.popular ? 'ring-2 ring-primary border-primary' : ''
-                }`}
+              <Card
+                key={index}
+                className={`relative p-6 ${plan.popular ? 'ring-2 ring-primary border-primary' : ''
+                  }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">

@@ -22,7 +22,7 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successes, setSuccesses] = useState<Record<string, boolean>>({});
-  
+
   const { toast } = useToast();
   const { signIn, signUp, signInWithGoogle } = useAuth();
 
@@ -37,10 +37,10 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
   const validateField = (field: string, value: string) => {
     const newErrors = { ...errors };
     const newSuccesses = { ...successes };
-    
+
     switch (field) {
       case 'firstName':
-      case 'lastName':
+      case 'lastName': {
         if (mode === 'signup') {
           if (!value.trim()) {
             newErrors[field] = `${field === 'firstName' ? 'First' : 'Last'} name is required`;
@@ -54,7 +54,8 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
           }
         }
         break;
-      case 'email':
+      }
+      case 'email': {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!value.trim()) {
           newErrors.email = "Email is required";
@@ -67,7 +68,8 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
           newSuccesses.email = true;
         }
         break;
-      case 'password':
+      }
+      case 'password': {
         if (mode !== 'forgot') {
           if (!value) {
             newErrors.password = "Password is required";
@@ -84,7 +86,8 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
           }
         }
         break;
-      case 'confirmPassword':
+      }
+      case 'confirmPassword': {
         if (mode === 'signup') {
           if (!value) {
             newErrors.confirmPassword = "Please confirm your password";
@@ -98,8 +101,9 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
           }
         }
         break;
+      }
     }
-    
+
     setErrors(newErrors);
     setSuccesses(newSuccesses);
     return !newErrors[field];
@@ -107,7 +111,7 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
 
   const handleFieldChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Validate field on change for immediate feedback
     if (value.trim() || field === 'confirmPassword') {
       validateField(field, value);
@@ -116,25 +120,25 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
 
   const validateForm = () => {
     let isValid = true;
-    
+
     if (mode === 'signup') {
       isValid = validateField('firstName', formData.firstName) && isValid;
       isValid = validateField('lastName', formData.lastName) && isValid;
       isValid = validateField('confirmPassword', formData.confirmPassword) && isValid;
     }
-    
+
     if (mode !== 'forgot') {
       isValid = validateField('password', formData.password) && isValid;
     }
-    
+
     isValid = validateField('email', formData.email) && isValid;
-    
+
     return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast({
         title: "Please fix the errors above",

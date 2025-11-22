@@ -67,12 +67,12 @@ Provide structured analysis with actionable insights and recommendations in JSON
 
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-      
+
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-      
+
       return {
         insights: [text],
         recommendations: ["Continue monitoring campaign performance"]
@@ -126,12 +126,12 @@ Provide strategic recommendations in JSON format:
 
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-      
+
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-      
+
       return {
         strategies: [text],
         priorities: ["Implement recommended strategies"],
@@ -188,12 +188,12 @@ Provide predictions in JSON format:
 
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-      
+
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-      
+
       return {
         predictions: [text],
         confidence: 0.5,
@@ -472,37 +472,6 @@ Goals: ${JSON.stringify(campaignGoals)}`;
       ]
     };
   }
-
-  private async readResource(uri: string): Promise<any> {
-    const [type, filter] = uri.split("://");
-
-    switch (type) {
-      case "campaign":
-        const { data: campaigns } = await supabase
-          .from('campaigns')
-          .select('*')
-          .eq('status', filter === 'active' ? 'active' : filter);
-        return { uri, data: campaigns };
-
-      case "candidates":
-        const { data: candidates } = await supabase
-          .from('candidates')
-          .select('*');
-        return { uri, data: candidates };
-
-      case "analytics":
-        const { data: analytics } = await supabase
-          .from('campaign_analytics')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(100);
-        return { uri, data: analytics };
-
-      default:
-        throw new Error(`Unknown resource type: ${type}`);
-    }
-  }
-
   private listPrompts() {
     return {
       prompts: [
@@ -549,9 +518,9 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { method, params }: MCPRequest = await req.json();
-    
+
     console.log(`Agent-based MCP request: ${method}`);
-    
+
     const server = new AgentBasedMCPServer();
     const result = await server.handleRequest(method, params);
 

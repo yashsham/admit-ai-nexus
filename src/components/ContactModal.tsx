@@ -24,7 +24,7 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
   const validateField = (field: string, value: string) => {
     const newErrors = { ...errors };
     const newSuccesses = { ...successes };
-    
+
     switch (field) {
       case 'name':
         if (!value.trim()) {
@@ -32,31 +32,6 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
           newSuccesses.name = false;
         } else if (value.trim().length < 2) {
           newErrors.name = "Name must be at least 2 characters";
-          newSuccesses.name = false;
-        } else {
-          delete newErrors.name;
-          newSuccesses.name = true;
-        }
-        break;
-      case 'email':
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!value.trim()) {
-          newErrors.email = "Email is required";
-          newSuccesses.email = false;
-        } else if (!emailRegex.test(value)) {
-          newErrors.email = "Please enter a valid email address";
-          newSuccesses.email = false;
-        } else {
-          delete newErrors.email;
-          newSuccesses.email = true;
-        }
-        break;
-      case 'message':
-        if (!value.trim()) {
-          newErrors.message = "Message is required";
-          newSuccesses.message = false;
-        } else if (value.trim().length < 10) {
-          newErrors.message = "Message must be at least 10 characters";
           newSuccesses.message = false;
         } else {
           delete newErrors.message;
@@ -64,7 +39,7 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
         }
         break;
     }
-    
+
     setErrors(newErrors);
     setSuccesses(newSuccesses);
     return !newErrors[field];
@@ -82,7 +57,7 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
         setMessage(value);
         break;
     }
-    
+
     // Validate field on change for immediate feedback
     if (value.trim()) {
       validateField(field, value);

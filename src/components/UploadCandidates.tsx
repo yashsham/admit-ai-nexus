@@ -8,6 +8,7 @@ import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthProvider';
+import Papa from 'papaparse';
 
 interface Candidate {
   name: string;
@@ -15,6 +16,7 @@ interface Candidate {
   email?: string;
   city?: string;
   course?: string;
+  [key: string]: any;
 }
 
 interface UploadCandidatesProps {
@@ -40,7 +42,7 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
 
   const loadCampaigns = async () => {
     if (!user) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('campaigns')
@@ -68,46 +70,83 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
 
   const parseFile = async (file: File) => {
     try {
-      const text = await file.text();
-      let parsedData: Candidate[] = [];
-
       if (file.name.endsWith('.csv')) {
-        const lines = text.split('\n');
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          transformHeader: (header) => header.toLowerCase().trim(),
+          complete: (results) => {
+            const parsedData: Candidate[] = [];
+            const errors: string[] = [];
 
-        for (let i = 1; i < lines.length; i++) {
-          if (lines[i].trim()) {
-            const values = lines[i].split(',');
-            const candidate: any = {};
+            results.data.forEach((row: any, index) => {
+              // Map common field names to our schema
+              const candidate: Candidate = {
+                name: row.name || row['full name'] || row['candidate name'] || '',
+                phone: row.phone || row.mobile || row['phone number'] || row['mobile number'] || '',
+                email: row.email || row['email address'] || undefined,
+                city: row.city || row.location || row.address || undefined,
+                course: row.course || row.program || row.interest || undefined
+              };
 
-            headers.forEach((header, index) => {
-              const value = values[index]?.trim() || '';
-              if (header.includes('name')) candidate.name = value;
-              else if (header.includes('phone') || header.includes('mobile')) candidate.phone = value;
-              else if (header.includes('email')) candidate.email = value;
-              else if (header.includes('city') || header.includes('location')) candidate.city = value;
-              else if (header.includes('course') || header.includes('program')) candidate.course = value;
+              if (candidate.name && candidate.phone) {
+                // Basic validation
+                if (candidate.phone.length < 10) {
+                  // console.warn(`Row ${index + 1}: Invalid phone number`);
+                }
+                parsedData.push(candidate);
+              } else {
+                // console.warn(`Row ${index + 1}: Missing required fields (name or phone)`);
+              }
             });
 
-            if (candidate.name && candidate.phone) {
-              parsedData.push(candidate);
+            if (parsedData.length === 0) {
+              toast({
+                title: "No valid candidates found",
+                description: "Please check your CSV headers. Required: name, phone",
+                variant: "destructive",
+              });
+              return;
             }
+
+            setCandidates(parsedData);
+            setPreview(true);
+            toast({
+              title: "File parsed successfully",
+              description: `Found ${parsedData.length} valid candidates`,
+            });
+          },
+          error: (error) => {
+            console.error('CSV Parsing Error:', error);
+            toast({
+              title: "Error parsing CSV",
+              description: error.message,
+              variant: "destructive",
+            });
           }
-        }
+        });
       } else if (file.name.endsWith('.json')) {
+        const text = await file.text();
         const jsonData = JSON.parse(text);
         if (Array.isArray(jsonData)) {
-          parsedData = jsonData.filter(item => item.name && item.phone);
+          const parsedData = jsonData
+            .filter(item => item.name && item.phone)
+            .map(item => ({
+              name: item.name,
+              phone: item.phone,
+              email: item.email,
+              city: item.city,
+              course: item.course
+            }));
+
+          setCandidates(parsedData);
+          setPreview(true);
+          toast({
+            title: "File parsed successfully",
+            description: `Found ${parsedData.length} valid candidates`,
+          });
         }
       }
-
-      setCandidates(parsedData);
-      setPreview(true);
-
-      toast({
-        title: "File parsed successfully",
-        description: `Found ${parsedData.length} valid candidates`,
-      });
     } catch (error) {
       console.error('Error parsing file:', error);
       toast({
@@ -124,7 +163,47 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
 
     setUploading(true);
     try {
-      const candidateData = candidates.map(candidate => ({
+      // 1. Check for duplicates in the current batch (simple check)
+      const uniqueCandidates = Array.from(new Map(candidates.map(item => [item.phone, item])).values());
+
+      if (uniqueCandidates.length < candidates.length) {
+        toast({
+          title: "Duplicates removed",
+          description: `Removed ${candidates.length - uniqueCandidates.length} duplicate phone numbers from the batch.`,
+        });
+      }
+
+      // 2. Check for duplicates in database
+      // Fetch existing phone numbers for this campaign
+      const { data: existingCandidates, error: fetchError } = await supabase
+        .from('candidates')
+        .select('phone')
+        .eq('campaign_id', activeCampaignId);
+
+      if (fetchError) throw fetchError;
+
+      const existingPhones = new Set(existingCandidates?.map(c => c.phone) || []);
+
+      const newCandidates = uniqueCandidates.filter(c => !existingPhones.has(c.phone));
+
+      if (newCandidates.length === 0) {
+        toast({
+          title: "All candidates already exist",
+          description: "All candidates in this file are already in this campaign.",
+          variant: "destructive",
+        });
+        setUploading(false);
+        return;
+      }
+
+      if (newCandidates.length < uniqueCandidates.length) {
+        toast({
+          title: "Existing candidates skipped",
+          description: `Skipped ${uniqueCandidates.length - newCandidates.length} candidates that are already in this campaign.`,
+        });
+      }
+
+      const candidateData = newCandidates.map(candidate => ({
         campaign_id: activeCampaignId,
         name: candidate.name,
         phone: candidate.phone,
@@ -140,17 +219,23 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
       if (error) throw error;
 
       // Update campaign candidates count
+      // We need to get the current count first or just recount
+      const { count } = await supabase
+        .from('candidates')
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign_id', activeCampaignId);
+
       await supabase
         .from('campaigns')
-        .update({ candidates_count: candidates.length })
+        .update({ candidates_count: count })
         .eq('id', activeCampaignId);
 
       toast({
         title: "Candidates uploaded successfully",
-        description: `${candidates.length} candidates added to your campaign`,
+        description: `${newCandidates.length} new candidates added to your campaign`,
       });
 
-      onUploadComplete?.(candidates);
+      onUploadComplete?.(newCandidates);
       setCandidates([]);
       setFile(null);
       setPreview(false);

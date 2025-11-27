@@ -102,7 +102,9 @@ export const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
             email_alerts: profile.email_alerts,
             sms_alerts: profile.sms_alerts
           }
-        ]);
+        ], {
+          onConflict: 'user_id'
+        });
 
       if (error) throw error;
 
@@ -142,7 +144,7 @@ export const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
                 <User className="w-5 h-5 text-primary" />
                 <h3 className="font-semibold">Personal Information</h3>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="full_name">Full Name</Label>
@@ -174,7 +176,7 @@ export const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
                 <Building2 className="w-5 h-5 text-primary" />
                 <h3 className="font-semibold">College Information</h3>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="college_name">College/University Name</Label>
@@ -217,7 +219,7 @@ export const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
                 <Bell className="w-5 h-5 text-primary" />
                 <h3 className="font-semibold">Notification Preferences</h3>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -277,8 +279,8 @@ export const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-            onClick={saveProfile} 
+          <Button
+            onClick={saveProfile}
             disabled={loading}
             variant="hero"
           >

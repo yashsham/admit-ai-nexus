@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,320 +12,11 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-interface EmailAgentConfig {
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+interface EmailAgentRequest {
   campaignId: string;
   candidateIds?: string[];
-  template?: string;
-  priority?: 'low' | 'normal' | 'high';
-  retryCount?: number;
-  scheduledAt?: string;
-  agentId?: string;
-}
-
-interface AgentMetrics {
-  totalAttempts: number;
-  successCount: number;
-  failureCount: number;
-  averageResponseTime: number;
-  lastActivity: string;
-}
-
-class EmailAgent {
-  private agentId: string;
-  private metrics: AgentMetrics;
-
-  constructor() {
-    this.agentId = `email-agent-${Date.now()}`;
-    this.metrics = {
-      totalAttempts: 0,
-      successCount: 0,
-      failureCount: 0,
-      averageResponseTime: 0,
-      lastActivity: new Date().toISOString()
-    };
-  }
-
-  async processEmailCampaign(config: EmailAgentConfig): Promise<any> {
-    const startTime = Date.now();
-    this.metrics.totalAttempts++;
-
-    try {
-      console.log(`[EmailAgent ${this.agentId}] Starting email campaign processing`, {
-        campaignId: config.campaignId,
-        priority: config.priority || 'normal',
-        candidateCount: config.candidateIds?.length || 'all'
-      });
-
-      // Get campaign and candidates
-      const { campaign, candidates } = await this.getCampaignData(config.campaignId, config.candidateIds);
-      
-      // Validate email configuration
-      await this.validateEmailSetup();
-
-      // Process candidates with intelligent batching
-      const results = await this.processCandidateBatch(candidates, campaign, config);
-
-      // Update metrics
-      this.updateMetrics(startTime, true);
-      
-      // Update campaign statistics
-      await this.updateCampaignStats(config.campaignId, results);
-
-      // Log agent performance
-      await this.logAgentActivity('email_campaign_completed', {
-        campaignId: config.campaignId,
-        results: results.summary,
-        metrics: this.metrics
-      });
-
-      console.log(`[EmailAgent ${this.agentId}] Campaign completed successfully`, results.summary);
-
-      return {
-        success: true,
-        agentId: this.agentId,
-        results: results.detailed,
-        summary: results.summary,
-        metrics: this.metrics
-      };
-
-    } catch (error) {
-      this.updateMetrics(startTime, false);
-      console.error(`[EmailAgent ${this.agentId}] Campaign failed:`, error);
-      
-      await this.logAgentActivity('email_campaign_failed', {
-        campaignId: config.campaignId,
-        error: error.message,
-        metrics: this.metrics
-      });
-
-      throw error;
-    }
-  }
-
-  private async getCampaignData(campaignId: string, candidateIds?: string[]) {
-    const { data: campaign, error: campaignError } = await supabase
-      .from('campaigns')
-      .select('*, candidates(*)')
-      .eq('id', campaignId)
-      .single();
-
-    if (campaignError || !campaign) {
-      throw new Error(`Campaign not found: ${campaignId}`);
-    }
-
-    let candidates = campaign.candidates;
-    if (candidateIds && candidateIds.length > 0) {
-      candidates = campaign.candidates.filter((c: any) => candidateIds.includes(c.id));
-    }
-
-    // Filter out candidates without email
-    candidates = candidates.filter((c: any) => c.email && c.email.includes('@'));
-
-    if (candidates.length === 0) {
-      throw new Error('No valid email candidates found');
-    }
-
-    return { campaign, candidates };
-  }
-
-  private async validateEmailSetup(): Promise<void> {
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    if (!resendApiKey) {
-      throw new Error('RESEND_API_KEY not configured');
-    }
-  }
-
-  private async processCandidateBatch(candidates: any[], campaign: any, config: EmailAgentConfig) {
-    const results = [];
-    const batchSize = 10; // Process in batches to avoid rate limits
-    
-    for (let i = 0; i < candidates.length; i += batchSize) {
-      const batch = candidates.slice(i, i + batchSize);
-      const batchPromises = batch.map(candidate => 
-        this.sendEmailToCandidate(candidate, campaign, config)
-      );
-      
-      const batchResults = await Promise.allSettled(batchPromises);
-      
-      batchResults.forEach((result, index) => {
-        const candidate = batch[index];
-        if (result.status === 'fulfilled') {
-          results.push(result.value);
-        } else {
-          results.push({
-            candidateId: candidate.id,
-            email: candidate.email,
-            status: 'failed',
-            error: result.reason?.message || 'Unknown error'
-          });
-        }
-      });
-
-      // Add delay between batches
-      if (i + batchSize < candidates.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-
-    const summary = {
-      total: candidates.length,
-      sent: results.filter(r => r.status === 'sent').length,
-      failed: results.filter(r => r.status === 'failed').length
-    };
-
-    return { detailed: results, summary };
-  }
-
-  private async sendEmailToCandidate(candidate: any, campaign: any, config: EmailAgentConfig) {
-    try {
-      const emailTemplate = config.template || campaign.template_email || this.getDefaultEmailTemplate();
-      const personalizedContent = this.personalizeContent(emailTemplate, candidate, campaign);
-
-      // Simulate email sending (in real implementation, use Resend API)
-      console.log(`[EmailAgent ${this.agentId}] Sending email to ${candidate.email}`);
-      
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
-
-      // Update candidate status
-      await supabase
-        .from('candidates')
-        .update({ 
-          email_sent: true,
-          status: 'email_sent',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', candidate.id);
-
-      // Log analytics event
-      await supabase
-        .from('campaign_analytics')
-        .insert({
-          campaign_id: campaign.id,
-          candidate_id: candidate.id,
-          event_type: 'email_sent',
-          channel: 'email',
-          status: 'success',
-          metadata: { 
-            agentId: this.agentId,
-            subject: `Admission Guidance for ${candidate.name}`,
-            priority: config.priority || 'normal'
-          },
-          timestamp: new Date().toISOString()
-        });
-
-      return {
-        candidateId: candidate.id,
-        email: candidate.email,
-        status: 'sent',
-        agentId: this.agentId
-      };
-
-    } catch (error) {
-      console.error(`[EmailAgent ${this.agentId}] Failed to send email to ${candidate.email}:`, error);
-      
-      // Log failed analytics event
-      await supabase
-        .from('campaign_analytics')
-        .insert({
-          campaign_id: campaign.id,
-          candidate_id: candidate.id,
-          event_type: 'email_failed',
-          channel: 'email',
-          status: 'failed',
-          metadata: { 
-            agentId: this.agentId,
-            error: error.message
-          },
-          timestamp: new Date().toISOString()
-        });
-
-      throw new Error(`Email failed for ${candidate.email}: ${error.message}`);
-    }
-  }
-
-  private personalizeContent(template: string, candidate: any, campaign: any): string {
-    return template
-      .replace(/\{name\}/g, candidate.name || 'Student')
-      .replace(/\{email\}/g, candidate.email)
-      .replace(/\{city\}/g, candidate.city || 'your area')
-      .replace(/\{course\}/g, candidate.course || 'your desired program')
-      .replace(/\{campaign_name\}/g, campaign.name || 'Admission Campaign');
-  }
-
-  private getDefaultEmailTemplate(): string {
-    return `Hello {name},
-
-We're excited to help you with your college admission journey! 🎓
-
-Our AdmitConnect AI platform provides personalized guidance for students in {city} interested in {course} programs.
-
-Key benefits:
-• Personalized admission strategies
-• Application timeline management  
-• Essay review and feedback
-• Interview preparation
-• Scholarship opportunities
-
-Ready to get started? Visit our platform today!
-
-Best regards,
-AdmitConnect AI Team`;
-  }
-
-  private updateMetrics(startTime: number, success: boolean): void {
-    const responseTime = Date.now() - startTime;
-    
-    if (success) {
-      this.metrics.successCount++;
-    } else {
-      this.metrics.failureCount++;
-    }
-
-    // Update average response time
-    const totalSuccessful = this.metrics.successCount;
-    if (totalSuccessful > 1) {
-      this.metrics.averageResponseTime = 
-        (this.metrics.averageResponseTime * (totalSuccessful - 1) + responseTime) / totalSuccessful;
-    } else {
-      this.metrics.averageResponseTime = responseTime;
-    }
-
-    this.metrics.lastActivity = new Date().toISOString();
-  }
-
-  private async updateCampaignStats(campaignId: string, results: any): Promise<void> {
-    const { data: campaign } = await supabase
-      .from('campaigns')
-      .select('messages_sent')
-      .eq('id', campaignId)
-      .single();
-
-    await supabase
-      .from('campaigns')
-      .update({ 
-        messages_sent: (campaign?.messages_sent || 0) + results.summary.sent,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', campaignId);
-  }
-
-  private async logAgentActivity(eventType: string, metadata: any): Promise<void> {
-    await supabase
-      .from('campaign_analytics')
-      .insert({
-        campaign_id: metadata.campaignId,
-        event_type: eventType,
-        channel: 'email',
-        status: eventType.includes('failed') ? 'failed' : 'success',
-        metadata: {
-          ...metadata,
-          agentType: 'email-agent',
-          agentVersion: '2.0'
-        },
-        timestamp: new Date().toISOString()
-      });
-  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -333,33 +25,185 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const config: EmailAgentConfig = await req.json();
-    
-    if (!config.campaignId) {
+    const { campaignId, candidateIds }: EmailAgentRequest = await req.json();
+
+    if (!campaignId) {
       throw new Error('Campaign ID is required');
     }
 
-    console.log('EmailAgent: Received request', {
-      campaignId: config.campaignId,
-      candidateCount: config.candidateIds?.length || 'all',
-      priority: config.priority || 'normal'
-    });
+    // Get campaign details
+    const { data: campaign, error: campaignError } = await supabase
+      .from('campaigns')
+      .select('*, user_id')
+      .eq('id', campaignId)
+      .single();
 
-    const emailAgent = new EmailAgent();
-    const result = await emailAgent.processEmailCampaign(config);
+    if (campaignError || !campaign) {
+      throw new Error('Campaign not found');
+    }
 
-    return new Response(JSON.stringify(result), {
+    // Get candidates for this campaign
+    let candidatesQuery = supabase
+      .from('candidates')
+      .select('*')
+      .eq('campaign_id', campaignId);
+
+    if (candidateIds && candidateIds.length > 0) {
+      candidatesQuery = candidatesQuery.in('id', candidateIds);
+    }
+
+    const { data: candidates, error: candidatesError } = await candidatesQuery;
+
+    if (candidatesError) {
+      throw new Error('Failed to fetch candidates');
+    }
+
+    if (!candidates || candidates.length === 0) {
+      return new Response(JSON.stringify({
+        success: true,
+        sent: 0,
+        failed: 0,
+        message: 'No candidates found for this campaign'
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Get email template (you might want to fetch this from campaign data)
+    const emailTemplate = campaign.template_email || `
+      Hi {{name}},
+      
+      We're excited to share information about our {{course}} program.
+      
+      Our team would love to discuss how this program can help you achieve your goals.
+      
+      Best regards,
+      Admissions Team
+    `;
+
+    const emailSubject = campaign.email_subject || `Exciting Opportunity: ${campaign.name}`;
+
+    let sent = 0;
+    let failed = 0;
+    const results: any[] = [];
+
+    // Send emails to each candidate
+    for (const candidate of candidates) {
+      try {
+        // Skip candidates without email
+        if (!candidate.email) {
+          console.log(`Skipping candidate ${candidate.name} - no email provided`);
+          failed++;
+          continue;
+        }
+
+        // Replace placeholders in template
+        const personalizedMessage = emailTemplate
+          .replace(/\{\{name\}\}/g, candidate.name || 'there')
+          .replace(/\{\{course\}\}/g, candidate.course || 'our program');
+
+        // Send email using Resend
+        const emailResponse = await resend.emails.send({
+          from: "AdmitConnect AI <onboarding@resend.dev>",
+          to: [candidate.email],
+          subject: emailSubject,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0;">AdmitConnect AI</h1>
+              </div>
+              <div style="padding: 30px; background: #f9fafb; border-radius: 0 0 10px 10px;">
+                ${personalizedMessage.replace(/\n/g, '<br>')}
+              </div>
+              <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px;">
+                <p>This email was sent as part of the "${campaign.name}" campaign.</p>
+              </div>
+            </div>
+          `,
+        });
+
+        if (emailResponse && !(emailResponse as any).error) {
+          sent++;
+          results.push({
+            candidate_id: candidate.id,
+            status: 'sent',
+            email: candidate.email
+          });
+
+          // Log to analytics
+          await supabase.from('campaign_analytics').insert({
+            campaign_id: campaignId,
+            event_type: 'email_sent',
+            channel: 'email',
+            status: 'success',
+            metadata: {
+              candidate_id: candidate.id,
+              candidate_name: candidate.name,
+              email: candidate.email,
+              message_id: (emailResponse as any).id
+            },
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          throw new Error((emailResponse as any).error?.message || 'Email send failed');
+        }
+
+      } catch (error: any) {
+        console.error(`Failed to send email to ${candidate.email}:`, error);
+        failed++;
+        results.push({
+          candidate_id: candidate.id,
+          status: 'failed',
+          email: candidate.email,
+          error: error.message
+        });
+
+        // Log failure to analytics
+        await supabase.from('campaign_analytics').insert({
+          campaign_id: campaignId,
+          event_type: 'email_failed',
+          channel: 'email',
+          status: 'failed',
+          metadata: {
+            candidate_id: candidate.id,
+            candidate_name: candidate.name,
+            email: candidate.email,
+            error: error.message
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    // Update campaign statistics
+    await supabase
+      .from('campaigns')
+      .update({
+        messages_sent: (campaign.messages_sent || 0) + sent,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', campaignId);
+
+    return new Response(JSON.stringify({
+      success: true,
+      sent,
+      failed,
+      total: candidates.length,
+      results
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
 
   } catch (error: any) {
-    console.error("Error in enhanced email-agent:", error);
-    
+    console.error("Error in email-agent function:", error);
+
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      sent: 0,
+      failed: 0
     }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },

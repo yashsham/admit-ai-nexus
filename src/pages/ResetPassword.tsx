@@ -20,23 +20,50 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user has valid session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        toast({
-          title: "Invalid or expired reset link",
-          description: "Please request a new password reset link.",
-          variant: "destructive",
-        });
-        navigate("/auth");
+    // Listen for auth state changes to handle password recovery flow
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        // User is in password recovery mode, session is valid
+        console.log("Password recovery session active");
+      } else if (event === "SIGNED_IN") {
+        // User is signed in, potentially after recovery or just normal login
+        // We allow them to stay on this page to reset password if they wish
+      } else if (event === "SIGNED_OUT") {
+        // If they are signed out, they shouldn't be here unless they are just arriving
+        // We give a small grace period or check if we have a hash
+        const hash = window.location.hash;
+        if (!hash || !hash.includes("type=recovery")) {
+          // If no recovery hash and no session, redirect
+          // But we wait a bit to ensure it's not just loading
+        }
       }
     });
+
+    // Initial check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        // If no session, check if we have the recovery hash, if so, wait for the event
+        const hash = window.location.hash;
+        if (!hash || !hash.includes("type=recovery")) {
+          toast({
+            title: "Invalid or expired reset link",
+            description: "Please request a new password reset link.",
+            variant: "destructive",
+          });
+          navigate("/auth");
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate, toast]);
 
   const validatePassword = (value: string) => {
     const newErrors = { ...errors };
     const newSuccesses = { ...successes };
-    
+
     if (!value.trim()) {
       newErrors.password = "Password is required";
       newSuccesses.password = false;
@@ -47,7 +74,7 @@ const ResetPassword = () => {
       delete newErrors.password;
       newSuccesses.password = true;
     }
-    
+
     setErrors(newErrors);
     setSuccesses(newSuccesses);
     return !newErrors.password;
@@ -56,7 +83,7 @@ const ResetPassword = () => {
   const validateConfirmPassword = (value: string) => {
     const newErrors = { ...errors };
     const newSuccesses = { ...successes };
-    
+
     if (!value.trim()) {
       newErrors.confirmPassword = "Please confirm your password";
       newSuccesses.confirmPassword = false;
@@ -67,7 +94,7 @@ const ResetPassword = () => {
       delete newErrors.confirmPassword;
       newSuccesses.confirmPassword = true;
     }
-    
+
     setErrors(newErrors);
     setSuccesses(newSuccesses);
     return !newErrors.confirmPassword;
@@ -75,10 +102,10 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const isPasswordValid = validatePassword(newPassword);
     const isConfirmValid = validateConfirmPassword(confirmPassword);
-    
+
     if (!isPasswordValid || !isConfirmValid) {
       return;
     }
@@ -115,11 +142,11 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <SEO 
+      <SEO
         title="Reset Password - AdmitConnect AI"
         description="Reset your AdmitConnect AI account password"
       />
-      
+
       <Card className="max-w-md w-full p-8 bg-card/95 backdrop-blur-sm border-border/50">
         {isSuccess ? (
           <div className="text-center space-y-6 animate-fade-in">

@@ -8,12 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Play, 
-  Pause, 
-  Settings, 
-  MessageSquare, 
-  Phone, 
+import {
+  Play,
+  Pause,
+  Settings,
+  MessageSquare,
+  Phone,
   Mail,
   Clock,
   Users,
@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { FadeIn } from "@/components/ui/scroll-reveal";
+import { useAuth } from "./AuthProvider";
 
 interface AutomationRule {
   id: string;
@@ -34,17 +35,7 @@ interface AutomationRule {
   delay: number;
   template: string;
   active: boolean;
-}
-
-interface CampaignFlow {
-  id: string;
-  campaign_id: string;
-  step_order: number;
-  channel: string;
-  template: string;
-  delay_hours: number;
-  conditions: any;
-  active: boolean;
+  user_id?: string;
 }
 
 export const CampaignAutomation = () => {
@@ -52,6 +43,7 @@ export const CampaignAutomation = () => {
   const [loading, setLoading] = useState(false);
   const [showNewRule, setShowNewRule] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // New rule form state
   const [newRule, setNewRule] = useState({
@@ -77,45 +69,50 @@ export const CampaignAutomation = () => {
     { value: 'email', label: 'Email', icon: Mail }
   ];
 
-  const defaultTemplates = {
+  const defaultTemplates: Record<string, string> = {
     whatsapp: "Hi {name}, I wanted to follow up on our previous message about {college}. Do you have any questions about our programs?",
     voice: "Hello {name}, this is a follow-up call regarding your interest in {college}. Please call us back at your convenience.",
     email: "Dear {name},\n\nWe noticed you showed interest in {college}. We'd love to answer any questions you might have about our programs.\n\nBest regards,\nAdmissions Team"
   };
 
   const fetchAutomationRules = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      // For demo purposes, we'll use mock data
-      // In production, this would fetch from a database table
+      const { data, error } = await supabase
+        .from('automation_rules')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setAutomationRules((data || []).map(rule => ({
+        ...rule,
+        channels: rule.channels || [],
+        active: rule.active ?? true
+      })));
+    } catch (error) {
+      console.error('Error fetching automation rules:', error);
+      // Fallback to mock data if table is missing or other error
+      console.warn('Falling back to local mock data');
       const mockRules: AutomationRule[] = [
         {
-          id: '1',
-          name: 'WhatsApp Follow-up',
+          id: 'mock-1',
+          name: 'Example WhatsApp Follow-up',
           trigger: 'no_response',
           channels: ['whatsapp'],
           delay: 24,
           template: defaultTemplates.whatsapp,
-          active: true
-        },
-        {
-          id: '2',
-          name: 'Voice Call Follow-up',
-          trigger: 'no_response',
-          channels: ['voice'],
-          delay: 48,
-          template: defaultTemplates.voice,
-          active: false
+          active: true,
+          user_id: user.id
         }
       ];
-      
       setAutomationRules(mockRules);
-    } catch (error) {
-      console.error('Error fetching automation rules:', error);
+
       toast({
-        title: "Error",
-        description: "Failed to fetch automation rules",
-        variant: "destructive"
+        title: "Using Offline Mode",
+        description: "Could not connect to database. Using local data.",
+        variant: "default"
       });
     } finally {
       setLoading(false);
@@ -123,6 +120,7 @@ export const CampaignAutomation = () => {
   };
 
   const createAutomationRule = async () => {
+    if (!user) return;
     if (!newRule.name || !newRule.template || newRule.channels.length === 0) {
       toast({
         title: "Validation Error",
@@ -133,12 +131,20 @@ export const CampaignAutomation = () => {
     }
 
     try {
-      const rule: AutomationRule = {
-        id: Date.now().toString(),
+      const ruleData = {
+        user_id: user.id,
         ...newRule
       };
 
-      setAutomationRules(prev => [...prev, rule]);
+      const { data, error } = await supabase
+        .from('automation_rules')
+        .insert(ruleData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setAutomationRules(prev => [data, ...prev]);
       setNewRule({
         name: '',
         trigger: 'no_response',
@@ -163,56 +169,59 @@ export const CampaignAutomation = () => {
     }
   };
 
-  const executeCampaign = async (campaignId: string, channels: string[]) => {
+  const toggleRule = async (ruleId: string, currentStatus: boolean) => {
     try {
-      const { data, error } = await supabase.functions.invoke('campaign-orchestrator', {
-        body: {
-          campaignId,
-          channels,
-          delay: 0 // immediate execution
-        }
-      });
+      const { error } = await supabase
+        .from('automation_rules')
+        .update({ active: !currentStatus })
+        .eq('id', ruleId);
 
       if (error) throw error;
 
-      toast({
-        title: "Campaign Started",
-        description: `Campaign executing across ${channels.join(', ')} channels`,
-      });
+      setAutomationRules(prev =>
+        prev.map(rule =>
+          rule.id === ruleId
+            ? { ...rule, active: !rule.active }
+            : rule
+        )
+      );
 
-      return data;
-    } catch (error) {
-      console.error('Error executing campaign:', error);
       toast({
-        title: "Campaign Failed",
-        description: "Failed to start campaign. Please try again.",
+        title: "Success",
+        description: "Automation rule updated"
+      });
+    } catch (error) {
+      console.error('Error updating rule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update rule",
         variant: "destructive"
       });
-      throw error;
     }
   };
 
-  const toggleRule = async (ruleId: string) => {
-    setAutomationRules(prev => 
-      prev.map(rule => 
-        rule.id === ruleId 
-          ? { ...rule, active: !rule.active }
-          : rule
-      )
-    );
+  const deleteRule = async (ruleId: string) => {
+    try {
+      const { error } = await supabase
+        .from('automation_rules')
+        .delete()
+        .eq('id', ruleId);
 
-    toast({
-      title: "Success",
-      description: "Automation rule updated"
-    });
-  };
+      if (error) throw error;
 
-  const deleteRule = (ruleId: string) => {
-    setAutomationRules(prev => prev.filter(rule => rule.id !== ruleId));
-    toast({
-      title: "Success",
-      description: "Automation rule deleted"
-    });
+      setAutomationRules(prev => prev.filter(rule => rule.id !== ruleId));
+      toast({
+        title: "Success",
+        description: "Automation rule deleted"
+      });
+    } catch (error) {
+      console.error('Error deleting rule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete rule",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleChannelToggle = (channel: string) => {
@@ -221,15 +230,15 @@ export const CampaignAutomation = () => {
       channels: prev.channels.includes(channel)
         ? prev.channels.filter(c => c !== channel)
         : [...prev.channels, channel],
-      template: prev.channels.includes(channel) 
-        ? prev.template 
-        : defaultTemplates[channel as keyof typeof defaultTemplates] || prev.template
+      template: prev.channels.includes(channel)
+        ? prev.template
+        : defaultTemplates[channel] || prev.template
     }));
   };
 
   useEffect(() => {
     fetchAutomationRules();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -288,7 +297,7 @@ export const CampaignAutomation = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {automationRules.length > 0 
+                {automationRules.length > 0
                   ? Math.round(automationRules.reduce((sum, rule) => sum + rule.delay, 0) / automationRules.length)
                   : 0}h
               </div>
@@ -360,13 +369,12 @@ export const CampaignAutomation = () => {
                   {channels.map(channel => {
                     const Icon = channel.icon;
                     const isSelected = newRule.channels.includes(channel.value);
-                    
+
                     return (
                       <div
                         key={channel.value}
-                        className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-all hover-lift ${
-                          isSelected ? 'border-primary bg-primary/10' : 'border-border'
-                        }`}
+                        className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-all hover-lift ${isSelected ? 'border-primary bg-primary/10' : 'border-border'
+                          }`}
                         onClick={() => handleChannelToggle(channel.value)}
                       >
                         <Icon className="w-4 h-4" />
@@ -435,9 +443,9 @@ export const CampaignAutomation = () => {
               <CardContent className="text-center py-8">
                 <Zap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No automation rules created yet</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4" 
+                <Button
+                  variant="outline"
+                  className="mt-4"
                   onClick={() => setShowNewRule(true)}
                 >
                   Create Your First Rule
@@ -457,12 +465,12 @@ export const CampaignAutomation = () => {
                           {triggers.find(t => t.value === rule.trigger)?.label}
                         </Badge>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => toggleRule(rule.id)}
+                          onClick={() => toggleRule(rule.id, rule.active)}
                           className="hover-lift"
                         >
                           {rule.active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -511,8 +519,8 @@ export const CampaignAutomation = () => {
                     <div className="mt-4">
                       <span className="text-muted-foreground text-sm">Template:</span>
                       <p className="text-sm bg-muted p-2 rounded mt-1 font-mono">
-                        {rule.template.length > 100 
-                          ? `${rule.template.substring(0, 100)}...` 
+                        {rule.template.length > 100
+                          ? `${rule.template.substring(0, 100)}...`
                           : rule.template}
                       </p>
                     </div>

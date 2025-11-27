@@ -5,11 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { 
-  Play, 
-  Mail, 
-  Phone, 
-  MessageSquare, 
+import {
+  Play,
+  Mail,
+  Phone,
+  MessageSquare,
   Clock,
   Users,
   Zap
@@ -43,7 +43,7 @@ export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExec
   ];
 
   const handleChannelToggle = (channelId: string) => {
-    setSelectedChannels(prev => 
+    setSelectedChannels(prev =>
       prev.includes(channelId)
         ? prev.filter(id => id !== channelId)
         : [...prev, channelId]
@@ -78,11 +78,16 @@ export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExec
       });
 
       onExecutionComplete?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Campaign execution error:', error);
+
+      // Detailed error message
+      const errorMessage = error.message || "Unknown error occurred";
+      const errorDetails = error.details || error.hint || "";
+
       toast({
         title: "Campaign Execution Failed",
-        description: error instanceof Error ? error.message : "Please check your configuration and try again",
+        description: `${errorMessage}. ${errorDetails}`,
         variant: "destructive"
       });
     } finally {
@@ -117,13 +122,12 @@ export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExec
             {channels.map((channel) => {
               const Icon = channel.icon;
               const isSelected = selectedChannels.includes(channel.id);
-              
+
               return (
                 <div
                   key={channel.id}
-                  className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-all hover-lift ${
-                    isSelected ? 'border-primary bg-primary/5' : 'border-border'
-                  }`}
+                  className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-all hover-lift ${isSelected ? 'border-primary bg-primary/5' : 'border-border'
+                    }`}
                   onClick={() => handleChannelToggle(channel.id)}
                 >
                   <Checkbox
@@ -180,7 +184,7 @@ export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExec
 
         {selectedChannels.length > 0 && (
           <div className="text-sm text-muted-foreground text-center">
-            Will execute: {selectedChannels.join(' → ')} 
+            Will execute: {selectedChannels.join(' → ')}
             {delayMinutes > 0 && ` with ${delayMinutes}min delay between channels`}
           </div>
         )}

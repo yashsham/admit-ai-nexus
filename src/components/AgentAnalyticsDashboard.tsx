@@ -26,10 +26,17 @@ interface ChannelMetrics {
   engagement_rate: number;
 }
 
+interface TimeSeriesData {
+  date: string;
+  email: number;
+  voice: number;
+  whatsapp: number;
+}
+
 const AgentAnalyticsDashboard: React.FC = () => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
   const [channelMetrics, setChannelMetrics] = useState<ChannelMetrics[]>([]);
-  const [timeSeriesData, setTimeSeriesData] = useState<any[]>([]);
+  const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
   const { toast } = useToast();
@@ -42,13 +49,13 @@ const AgentAnalyticsDashboard: React.FC = () => {
     setIsLoading(true);
     try {
       const startDate = getStartDate(selectedTimeRange);
-      
+
       // Fetch campaign analytics
       const { data: analytics, error: analyticsError } = await supabase
         .from('campaign_analytics')
         .select(`
           *,
-          campaigns!inner(name)
+          campaigns (name)
         `)
         .gte('timestamp', startDate.toISOString())
         .order('timestamp', { ascending: false });
@@ -57,7 +64,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
 
       // Process analytics data
       const processedData = processAnalyticsData(analytics || []);
-      setAnalyticsData(processedData as AnalyticsData[]);
+      setAnalyticsData(processedData);
 
       // Calculate channel metrics
       const channelStats = calculateChannelMetrics(analytics || []);
@@ -93,14 +100,14 @@ const AgentAnalyticsDashboard: React.FC = () => {
     }
   };
 
-  const processAnalyticsData = (data: any[]) => {
+  const processAnalyticsData = (data: any[]): AnalyticsData[] => {
     // Group and count events
-    const grouped = data.reduce((acc, item) => {
-      const key = `${item.campaigns.name}-${item.event_type}-${item.channel}`;
+    const grouped = data.reduce((acc: any, item: any) => {
+      const key = `${item.campaigns?.name || 'Unknown'}-${item.event_type}-${item.channel}`;
       if (!acc[key]) {
         acc[key] = {
           campaign_id: item.campaign_id,
-          campaign_name: item.campaigns.name,
+          campaign_name: item.campaigns?.name || 'Unknown',
           event_type: item.event_type,
           channel: item.channel,
           status: item.status,
@@ -117,23 +124,23 @@ const AgentAnalyticsDashboard: React.FC = () => {
 
   const calculateChannelMetrics = (data: any[]): ChannelMetrics[] => {
     const channels = ['email', 'voice', 'whatsapp'];
-    
+
     return channels.map(channel => {
       const channelData = data.filter(item => item.channel === channel);
-      
-      const sent = channelData.filter(item => 
+
+      const sent = channelData.filter(item =>
         item.event_type.includes('sent') || item.event_type.includes('initiated')
       ).length;
-      
-      const delivered = channelData.filter(item => 
+
+      const delivered = channelData.filter(item =>
         item.status === 'success' && item.event_type.includes('delivered')
       ).length;
-      
-      const opened = channelData.filter(item => 
+
+      const opened = channelData.filter(item =>
         item.event_type.includes('opened') || item.event_type.includes('answered')
       ).length;
-      
-      const failed = channelData.filter(item => 
+
+      const failed = channelData.filter(item =>
         item.event_type.includes('failed') || item.status === 'failed'
       ).length;
 
@@ -150,19 +157,19 @@ const AgentAnalyticsDashboard: React.FC = () => {
     });
   };
 
-  const generateTimeSeriesData = (data: any[]) => {
-    const last7Days = [];
+  const generateTimeSeriesData = (data: any[]): TimeSeriesData[] => {
+    const last7Days: TimeSeriesData[] = [];
     const now = new Date();
-    
+
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      const dayData = {
+      const dayData: TimeSeriesData = {
         date: date.toLocaleDateString(),
         email: 0,
         voice: 0,
         whatsapp: 0
       };
-      
+
       data.forEach(item => {
         const itemDate = new Date(item.timestamp);
         if (itemDate.toDateString() === date.toDateString() && item.status === 'success') {
@@ -171,10 +178,10 @@ const AgentAnalyticsDashboard: React.FC = () => {
           if (item.channel === 'whatsapp') dayData.whatsapp++;
         }
       });
-      
+
       last7Days.push(dayData);
     }
-    
+
     return last7Days;
   };
 
@@ -188,7 +195,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
       a.download = `agent-analytics-${selectedTimeRange}-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
-      
+
       toast({
         title: "Success",
         description: "Analytics report exported successfully",
@@ -212,7 +219,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
       item.count,
       item.timestamp
     ]);
-    
+
     return [headers, ...rows].map(row => row.join(',')).join('\n');
   };
 
@@ -239,7 +246,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
           <p className="text-muted-foreground">Track engagement across all channels</p>
         </div>
         <div className="flex items-center gap-2">
-          <select 
+          <select
             className="rounded-md border border-input bg-background px-3 py-2"
             value={selectedTimeRange}
             onChange={(e) => setSelectedTimeRange(e.target.value)}
@@ -385,9 +392,9 @@ const AgentAnalyticsDashboard: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             {channelMetrics.map((metric) => {
-              const IconComponent = metric.channel === 'email' ? Mail : 
-                                   metric.channel === 'voice' ? Phone : MessageSquare;
-              
+              const IconComponent = metric.channel === 'email' ? Mail :
+                metric.channel === 'voice' ? Phone : MessageSquare;
+
               return (
                 <div key={metric.channel} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">

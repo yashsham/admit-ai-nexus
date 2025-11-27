@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
+import { ChatService } from "@/lib/ai/ChatService";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, X, Send, Bot, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,6 +31,9 @@ export const ChatWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Initialize ChatService with 'general' context
+  const chatService = useRef(new ChatService('general'));
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -55,18 +58,17 @@ export const ChatWidget = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
-        body: {
-          message: userMessage.content,
-          conversationHistory: messages.slice(-5), // Last 5 messages for context
-        }
-      });
+      // Convert internal message format to ChatMessage format for the service
+      const history = messages.map(m => ({
+        role: m.role,
+        content: m.content
+      }));
 
-      if (error) throw error;
+      const response = await chatService.current.generateResponse(userMessage.content, history);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response,
+        content: response.content,
         role: "assistant",
         timestamp: new Date(),
       };
@@ -79,7 +81,7 @@ export const ChatWidget = () => {
         description: "Failed to get AI response. Please try again.",
         variant: "destructive",
       });
-      
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",

@@ -47,7 +47,7 @@ const Dashboard = () => {
   const [activeDialog, setActiveDialog] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [campaigns, setCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalCampaigns: 0,
     messagesSent: 0,
@@ -58,6 +58,30 @@ const Dashboard = () => {
   useEffect(() => {
     loadDashboardData();
   }, [user]);
+
+  // Real-time updates for analytics
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-analytics')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'campaign_analytics' },
+        (payload) => {
+          console.log('Real-time analytics update:', payload);
+          toast({
+            title: "New Activity",
+            description: `Agent ${payload.new.channel} reported: ${payload.new.status}`,
+          });
+          // Refresh data to show new stats
+          loadDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const loadDashboardData = async () => {
     if (!user) return;
@@ -269,16 +293,16 @@ const Dashboard = () => {
                     Quick Actions
                   </h3>
                   <div className="space-y-3">
-                     <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => setActiveDialog('upload-candidates')}
                     >
                       <Upload className="w-4 h-4 mr-2" />
                       Upload Candidates
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => setActiveDialog('create-campaign')}
                     >
@@ -286,8 +310,8 @@ const Dashboard = () => {
                       Create Campaign
                     </Button>
                     {campaigns.length > 0 && (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="w-full justify-start"
                         onClick={() => setActiveDialog('execute-campaign')}
                       >
@@ -295,8 +319,8 @@ const Dashboard = () => {
                         Execute Campaign
                       </Button>
                     )}
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => setShowPayment(true)}
                     >
@@ -317,7 +341,7 @@ const Dashboard = () => {
                 New Campaign
               </Button>
             </div>
-            
+
             {campaigns.length === 0 ? (
               <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border-border/50">
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -361,42 +385,42 @@ const Dashboard = () => {
       </div>
 
       {/* Dialogs */}
-      <Dialog 
-        open={activeDialog === 'create-campaign'} 
+      <Dialog
+        open={activeDialog === 'create-campaign'}
         onOpenChange={(open) => !open && setActiveDialog(null)}
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Create New Campaign</DialogTitle>
           </DialogHeader>
-          <CampaignCreator 
+          <CampaignCreator
             onCampaignCreated={() => {
               setActiveDialog(null);
               loadDashboardData();
-            }} 
+            }}
           />
         </DialogContent>
       </Dialog>
 
-      <Dialog 
-        open={activeDialog === 'upload-candidates'} 
+      <Dialog
+        open={activeDialog === 'upload-candidates'}
         onOpenChange={(open) => !open && setActiveDialog(null)}
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Upload Candidates</DialogTitle>
           </DialogHeader>
-          <UploadCandidates 
+          <UploadCandidates
             onUploadComplete={() => {
               setActiveDialog(null);
               loadDashboardData();
-            }} 
+            }}
           />
         </DialogContent>
       </Dialog>
 
-      <Dialog 
-        open={activeDialog === 'execute-campaign'} 
+      <Dialog
+        open={activeDialog === 'execute-campaign'}
         onOpenChange={(open) => !open && setActiveDialog(null)}
       >
         <DialogContent className="max-w-2xl">
@@ -404,7 +428,7 @@ const Dashboard = () => {
             <DialogTitle>Execute Campaign</DialogTitle>
           </DialogHeader>
           {campaigns.length > 0 && (
-            <CampaignExecutor 
+            <CampaignExecutor
               campaign={campaigns[0]}
               onExecutionComplete={() => {
                 setActiveDialog(null);
@@ -413,20 +437,20 @@ const Dashboard = () => {
                   title: "Campaign Executed",
                   description: "Your campaign is now running across selected channels"
                 });
-              }} 
+              }}
             />
           )}
         </DialogContent>
       </Dialog>
 
-      <SettingsModal 
-        open={showSettings} 
-        onOpenChange={setShowSettings} 
+      <SettingsModal
+        open={showSettings}
+        onOpenChange={setShowSettings}
       />
 
-      <PaymentModal 
-        open={showPayment} 
-        onOpenChange={setShowPayment} 
+      <PaymentModal
+        open={showPayment}
+        onOpenChange={setShowPayment}
       />
     </div>
   );

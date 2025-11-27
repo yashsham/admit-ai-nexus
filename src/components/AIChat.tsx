@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { ChatService } from "@/lib/ai/ChatService";
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,9 @@ export const AIChat = ({ sessionId, onNewSession }: AIChatProps) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Initialize ChatService with 'dashboard' context
+  const chatService = useRef(new ChatService('dashboard'));
 
   useEffect(() => {
     if (currentSessionId) {
@@ -117,25 +121,12 @@ export const AIChat = ({ sessionId, onNewSession }: AIChatProps) => {
   const generateAIResponse = async (userMessage: string): Promise<string> => {
     try {
       const conversationHistory = messages.map(msg => ({
-        id: msg.id,
         role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp
+        content: msg.content
       }));
 
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
-        body: { 
-          message: userMessage,
-          conversationHistory 
-        }
-      });
-
-      if (error) {
-        console.error('AI chat error:', error);
-        throw error;
-      }
-
-      return data.response || "I apologize, I'm having trouble responding right now. Please try again.";
+      const response = await chatService.current.generateResponse(userMessage, conversationHistory);
+      return response.content;
     } catch (error) {
       console.error('Error calling AI chat:', error);
       throw new Error('Failed to get AI response');
@@ -181,7 +172,7 @@ export const AIChat = ({ sessionId, onNewSession }: AIChatProps) => {
     try {
       // Generate AI response
       const aiResponse = await generateAIResponse(userMessage);
-      
+
       const aiMsgId = `ai-${Date.now()}`;
       const newAIMessage: Message = {
         id: aiMsgId,
@@ -237,19 +228,18 @@ export const AIChat = ({ sessionId, onNewSession }: AIChatProps) => {
                   </AvatarFallback>
                 </Avatar>
               )}
-              
+
               <div
-                className={`max-w-[70%] rounded-lg p-3 ${
-                  message.role === 'user'
+                className={`max-w-[70%] rounded-lg p-3 ${message.role === 'user'
                     ? 'bg-primary text-primary-foreground ml-auto'
                     : 'bg-muted'
-                }`}
+                  }`}
               >
                 <p className="text-sm">{message.content}</p>
                 <p className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
+                  {message.timestamp.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
                   })}
                 </p>
               </div>
@@ -263,7 +253,7 @@ export const AIChat = ({ sessionId, onNewSession }: AIChatProps) => {
               )}
             </div>
           ))}
-          
+
           {loading && (
             <div className="flex gap-3 justify-start">
               <Avatar className="w-8 h-8">

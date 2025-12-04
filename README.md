@@ -22,9 +22,34 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Configure environment variables.
+cp .env.example .env
+# Edit .env and fill in your API keys
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
+
+## Deployment
+
+This project is configured to automatically deploy to GitHub Pages when you push to the `main` or `master` branch.
+
+**Important:** You must configure your API keys in GitHub Secrets for the deployment to work.
+
+1.  Go to your GitHub Repository.
+2.  Navigate to **Settings** > **Secrets and variables** > **Actions**.
+3.  Click **New repository secret**.
+4.  Add the following secrets (copy values from your local `.env`):
+    *   `VITE_GROQ_API_KEY`
+    *   `VITE_TAVILY_API_KEY`
+    *   `VITE_LANGCHAIN_TRACING_V2`
+    *   `VITE_LANGCHAIN_API_KEY`
+    *   `VITE_LANGCHAIN_PROJECT`
+    *   `VITE_LANGCHAIN_ENDPOINT`
+    *   `VITE_SUPABASE_URL`
+    *   `VITE_SUPABASE_ANON_KEY`
+
+Once these are set, any push to `main` will trigger a build and deploy.
 
 **Edit a file directly in GitHub**
 
@@ -49,3 +74,5 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+
+<!-- Triggering rebuild for API keys -->

@@ -1,0 +1,43 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          # Inject secrets from GitHub Repository Settings
+          VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY }}
+          VITE_TAVILY_API_KEY: ${{ secrets.VITE_TAVILY_API_KEY }}
+          VITE_LANGCHAIN_TRACING_V2: ${{ secrets.VITE_LANGCHAIN_TRACING_V2 }}
+          VITE_LANGCHAIN_API_KEY: ${{ secrets.VITE_LANGCHAIN_API_KEY }}
+          VITE_LANGCHAIN_PROJECT: ${{ secrets.VITE_LANGCHAIN_PROJECT }}
+          VITE_LANGCHAIN_ENDPOINT: ${{ secrets.VITE_LANGCHAIN_ENDPOINT }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Note: Supabase Edge Functions run on the server side (Supabase), 
+          # so their env vars (SUPABASE_URL, etc.) are set in the Supabase Dashboard, not here.
+          # But if your build needs them for some reason, add them.
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist

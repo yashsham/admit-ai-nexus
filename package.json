@@ -52,6 +52,7 @@
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
     "langsmith": "^0.3.82",
+    "lovable-tagger": "^1.1.11",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "papaparse": "^5.5.3",

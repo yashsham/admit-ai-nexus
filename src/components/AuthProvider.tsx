@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        
+
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -120,8 +120,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
+    const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
+
     const { error, data } = await supabase.auth.signUp({
       email,
       password,
@@ -160,7 +160,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}dashboard`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -191,7 +191,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}reset-password`,
     });
 
     if (error) {

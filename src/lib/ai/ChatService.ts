@@ -83,39 +83,51 @@ Write naturally and conversationally, similar to ChatGPT. Be professional and co
 
 export class ChatService {
   private context: ChatContext;
-  private model: ChatGroq;
+  private model: ChatGroq | null = null;
   private tracer: LangChainTracer | undefined;
+  private isAvailable: boolean = false;
 
   constructor(context: ChatContext = 'general') {
     this.context = context;
 
     if (!GROQ_API_KEY) {
-      console.error('Groq API key is missing');
+      console.warn('Groq API key is missing - chat service will be unavailable');
+      return;
     }
 
-    this.model = new ChatGroq({
-      apiKey: GROQ_API_KEY,
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.7,
-      maxTokens: 1024,
-    });
+    try {
+      this.model = new ChatGroq({
+        apiKey: GROQ_API_KEY,
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.7,
+        maxTokens: 1024,
+      });
+      this.isAvailable = true;
 
-    // Initialize LangSmith Tracer
-    if (LANGCHAIN_TRACING_V2 && LANGCHAIN_API_KEY) {
-      try {
-        const client = new Client({
-          apiUrl: import.meta.env.VITE_LANGCHAIN_ENDPOINT,
-          apiKey: LANGCHAIN_API_KEY,
-        });
+      // Initialize LangSmith Tracer
+      if (LANGCHAIN_TRACING_V2 && LANGCHAIN_API_KEY) {
+        try {
+          const client = new Client({
+            apiUrl: import.meta.env.VITE_LANGCHAIN_ENDPOINT,
+            apiKey: LANGCHAIN_API_KEY,
+          });
 
-        this.tracer = new LangChainTracer({
-          projectName: LANGCHAIN_PROJECT || "default",
-          client,
-        });
-      } catch (e) {
-        console.warn("Failed to initialize LangSmith tracer", e);
+          this.tracer = new LangChainTracer({
+            projectName: LANGCHAIN_PROJECT || "default",
+            client,
+          });
+        } catch (e) {
+          console.warn("Failed to initialize LangSmith tracer", e);
+        }
       }
+    } catch (error) {
+      console.error('Failed to initialize ChatService:', error);
+      this.isAvailable = false;
     }
+  }
+
+  public checkAvailability(): boolean {
+    return this.isAvailable;
   }
 
   private async searchTavily(query: string): Promise<ChatSource[]> {
@@ -156,6 +168,13 @@ export class ChatService {
   }
 
   public async generateResponse(userMessage: string, history: ChatMessage[] = []): Promise<ChatResponse> {
+    if (!this.model || !this.isAvailable) {
+      return {
+        content: "I'm sorry, the AI chat service is currently unavailable. Please check the API configuration.",
+        sources: []
+      };
+    }
+
     try {
       let sources: ChatSource[] = [];
       let contextContent = '';

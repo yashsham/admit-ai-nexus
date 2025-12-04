@@ -36,6 +36,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check if we're handling a redirect callback
+    const isHandlingRedirect = window.location.hash && (
+      window.location.hash.includes('access_token') ||
+      window.location.hash.includes('refresh_token') ||
+      window.location.hash.includes('error')
+    );
+
+    if (isHandlingRedirect) {
+      console.log('Handling auth redirect, keeping loading state active...');
+    }
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -43,7 +54,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+
+        // If we have a session, we can stop loading immediately
+        // If we don't have a session but we're NOT handling a redirect, we can stop loading
+        // If we don't have a session AND we ARE handling a redirect, keep loading (wait for potential subsequent events)
+        if (session || !isHandlingRedirect) {
+          setLoading(false);
+        }
 
         // Handle specific auth events
         if (event === 'SIGNED_IN') {
@@ -56,6 +73,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         } else if (event === 'SIGNED_OUT') {
           // Clear any local storage if needed
           localStorage.removeItem('sb-imlbkhgquajmnqgbvgwj-auth-token');
+          setLoading(false); // Ensure loading is false on sign out
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Token refreshed successfully');
         }
@@ -66,8 +84,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+
+      // Same logic as above
+      if (session || !isHandlingRedirect) {
+        setLoading(false);
+      }
     });
+
+    // Safety timeout: If we're handling a redirect but nothing happens for 5 seconds, stop loading
+    // This prevents infinite loading screens if the hash is invalid or Supabase fails silently
+    if (isHandlingRedirect) {
+      const timeoutId = setTimeout(() => {
+        console.log('Auth redirect timeout reached, forcing loading completion');
+        setLoading(false);
+      }, 5000);
+
+      return () => {
+        subscription.unsubscribe();
+        clearTimeout(timeoutId);
+      };
+    }
 
     return () => subscription.unsubscribe();
   }, []);

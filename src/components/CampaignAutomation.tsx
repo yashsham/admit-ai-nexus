@@ -21,7 +21,6 @@ import {
   Plus,
   Trash2
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { FadeIn } from "@/components/ui/scroll-reveal";
@@ -75,26 +74,22 @@ export const CampaignAutomation = () => {
     email: "Dear {name},\n\nWe noticed you showed interest in {college}. We'd love to answer any questions you might have about our programs.\n\nBest regards,\nAdmissions Team"
   };
 
-  const fetchAutomationRules = async () => {
+  const loadAutomationRules = () => {
     if (!user) return;
     setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('automation_rules')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setAutomationRules((data || []).map(rule => ({
-        ...rule,
-        channels: rule.channels || [],
-        active: rule.active ?? true
-      })));
-    } catch (error) {
-      console.error('Error fetching automation rules:', error);
-      // Fallback to mock data if table is missing or other error
-      console.warn('Falling back to local mock data');
+    
+    // Load from localStorage or use default mock data
+    const storageKey = `automation_rules_${user.id}`;
+    const storedRules = localStorage.getItem(storageKey);
+    
+    if (storedRules) {
+      try {
+        setAutomationRules(JSON.parse(storedRules));
+      } catch {
+        setAutomationRules([]);
+      }
+    } else {
+      // Default mock data
       const mockRules: AutomationRule[] = [
         {
           id: 'mock-1',
@@ -108,18 +103,19 @@ export const CampaignAutomation = () => {
         }
       ];
       setAutomationRules(mockRules);
-
-      toast({
-        title: "Using Offline Mode",
-        description: "Could not connect to database. Using local data.",
-        variant: "default"
-      });
-    } finally {
-      setLoading(false);
+      localStorage.setItem(storageKey, JSON.stringify(mockRules));
     }
+    
+    setLoading(false);
   };
 
-  const createAutomationRule = async () => {
+  const saveRulesToStorage = (rules: AutomationRule[]) => {
+    if (!user) return;
+    const storageKey = `automation_rules_${user.id}`;
+    localStorage.setItem(storageKey, JSON.stringify(rules));
+  };
+
+  const createAutomationRule = () => {
     if (!user) return;
     if (!newRule.name || !newRule.template || newRule.channels.length === 0) {
       toast({
@@ -130,98 +126,56 @@ export const CampaignAutomation = () => {
       return;
     }
 
-    try {
-      const ruleData = {
-        user_id: user.id,
-        ...newRule
-      };
+    const ruleData: AutomationRule = {
+      id: `rule-${Date.now()}`,
+      user_id: user.id,
+      ...newRule
+    };
 
-      const { data, error } = await supabase
-        .from('automation_rules')
-        .insert(ruleData)
-        .select()
-        .single();
+    const updatedRules = [ruleData, ...automationRules];
+    setAutomationRules(updatedRules);
+    saveRulesToStorage(updatedRules);
 
-      if (error) throw error;
+    setNewRule({
+      name: '',
+      trigger: 'no_response',
+      channels: [],
+      delay: 24,
+      template: '',
+      active: true
+    });
+    setShowNewRule(false);
 
-      setAutomationRules(prev => [data, ...prev]);
-      setNewRule({
-        name: '',
-        trigger: 'no_response',
-        channels: [],
-        delay: 24,
-        template: '',
-        active: true
-      });
-      setShowNewRule(false);
-
-      toast({
-        title: "Success",
-        description: "Automation rule created successfully"
-      });
-    } catch (error) {
-      console.error('Error creating automation rule:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create automation rule",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Success",
+      description: "Automation rule created successfully"
+    });
   };
 
-  const toggleRule = async (ruleId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('automation_rules')
-        .update({ active: !currentStatus })
-        .eq('id', ruleId);
+  const toggleRule = (ruleId: string, currentStatus: boolean) => {
+    const updatedRules = automationRules.map(rule =>
+      rule.id === ruleId
+        ? { ...rule, active: !rule.active }
+        : rule
+    );
+    setAutomationRules(updatedRules);
+    saveRulesToStorage(updatedRules);
 
-      if (error) throw error;
-
-      setAutomationRules(prev =>
-        prev.map(rule =>
-          rule.id === ruleId
-            ? { ...rule, active: !rule.active }
-            : rule
-        )
-      );
-
-      toast({
-        title: "Success",
-        description: "Automation rule updated"
-      });
-    } catch (error) {
-      console.error('Error updating rule:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update rule",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Success",
+      description: "Automation rule updated"
+    });
   };
 
-  const deleteRule = async (ruleId: string) => {
-    try {
-      const { error } = await supabase
-        .from('automation_rules')
-        .delete()
-        .eq('id', ruleId);
-
-      if (error) throw error;
-
-      setAutomationRules(prev => prev.filter(rule => rule.id !== ruleId));
-      toast({
-        title: "Success",
-        description: "Automation rule deleted"
-      });
-    } catch (error) {
-      console.error('Error deleting rule:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete rule",
-        variant: "destructive"
-      });
-    }
+  const deleteRule = (ruleId: string) => {
+    const updatedRules = automationRules.filter(rule => rule.id !== ruleId);
+    setAutomationRules(updatedRules);
+    saveRulesToStorage(updatedRules);
+    
+    toast({
+      title: "Success",
+      description: "Automation rule deleted"
+    });
   };
 
   const handleChannelToggle = (channel: string) => {
@@ -237,7 +191,7 @@ export const CampaignAutomation = () => {
   };
 
   useEffect(() => {
-    fetchAutomationRules();
+    loadAutomationRules();
   }, [user]);
 
   if (loading) {
@@ -502,27 +456,26 @@ export const CampaignAutomation = () => {
                           })}
                         </div>
                       </div>
-
                       <div>
                         <span className="text-muted-foreground">Delay:</span>
-                        <p className="font-medium">{rule.delay} hours</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Clock className="w-3 h-3" />
+                          {rule.delay} hours
+                        </div>
                       </div>
-
                       <div>
                         <span className="text-muted-foreground">Status:</span>
-                        <Badge variant={rule.active ? "default" : "secondary"} className="ml-2">
-                          {rule.active ? "Active" : "Paused"}
-                        </Badge>
+                        <div className="mt-1">
+                          <Badge variant={rule.active ? "default" : "secondary"}>
+                            {rule.active ? "Active" : "Paused"}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mt-4">
-                      <span className="text-muted-foreground text-sm">Template:</span>
-                      <p className="text-sm bg-muted p-2 rounded mt-1 font-mono">
-                        {rule.template.length > 100
-                          ? `${rule.template.substring(0, 100)}...`
-                          : rule.template}
-                      </p>
+                    <div className="mt-4 pt-4 border-t border-border/50">
+                      <span className="text-muted-foreground text-sm">Template Preview:</span>
+                      <p className="text-sm mt-1 line-clamp-2">{rule.template}</p>
                     </div>
                   </CardContent>
                 </Card>

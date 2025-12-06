@@ -111,7 +111,22 @@ class DecisionEngine {
       throw new Error('Campaign or candidates not found');
     }
 
-    const strategy = {
+    interface Recommendation {
+      candidateId: string;
+      name: string;
+      recommendedActions: string[];
+      priority: number;
+      estimatedConversionRate: number;
+    }
+
+    const strategy: {
+      campaignId: string;
+      totalCandidates: number;
+      recommendations: Recommendation[];
+      channelPriority: string[];
+      estimatedTimeline: any;
+      effectiveness: any;
+    } = {
       campaignId,
       totalCandidates: candidates.length,
       recommendations: [],

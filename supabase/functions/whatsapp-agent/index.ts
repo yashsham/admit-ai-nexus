@@ -91,13 +91,14 @@ class MessagingAgent {
         metrics: this.metrics
       };
 
-    } catch (error) {
+    } catch (error: unknown) {
       this.updateMetrics(startTime, false, null);
       console.error(`[MessagingAgent ${this.agentId}] Campaign failed:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       await this.logAgentActivity('messaging_campaign_failed', {
         campaignId: config.campaignId,
-        error: error.message,
+        error: errorMessage,
         metrics: this.metrics
       });
 
@@ -154,7 +155,15 @@ class MessagingAgent {
   }
 
   private async processCandidateMessages(candidates: any[], campaign: any, config: MessagingAgentConfig) {
-    const results = [];
+    const results: Array<{
+      candidateId: string;
+      phone: string;
+      status: string;
+      error?: string;
+      messageSid?: string;
+      messageType?: string;
+      agentId: string;
+    }> = [];
     const messageDelay = this.getMessageDelay(config.priority);
     const batchSize = config.priority === 'high' ? 20 : config.priority === 'low' ? 5 : 10;
     
@@ -312,8 +321,9 @@ class MessagingAgent {
         agentId: this.agentId
       };
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`[MessagingAgent ${this.agentId}] Message failed for ${candidate.phone}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       // Log failed analytics event
       await supabase
@@ -326,7 +336,7 @@ class MessagingAgent {
           status: 'failed',
           metadata: { 
             agentId: this.agentId,
-            error: error.message
+            error: errorMessage
           },
           timestamp: new Date().toISOString()
         });

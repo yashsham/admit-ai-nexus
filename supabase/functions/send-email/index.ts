@@ -41,8 +41,8 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "AdmitConnect AI <onboarding@resend.dev>",
       to: ["admitconnectai@gmail.com"],
-      replyTo: safeEmail,
-      subject: type === 'demo_request' 
+      reply_to: safeEmail,
+      subject: type === 'demo_request'
         ? `Demo Request from ${safeName}` 
         : `Contact Form Submission from ${safeName}`,
       html: `

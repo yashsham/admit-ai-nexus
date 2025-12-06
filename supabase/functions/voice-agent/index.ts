@@ -91,13 +91,14 @@ class VoiceAgent {
         metrics: this.metrics
       };
 
-    } catch (error) {
+    } catch (error: unknown) {
       this.updateMetrics(startTime, false);
       console.error(`[VoiceAgent ${this.agentId}] Campaign failed:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       await this.logAgentActivity('voice_campaign_failed', {
         campaignId: config.campaignId,
-        error: error.message,
+        error: errorMessage,
         metrics: this.metrics
       });
 
@@ -155,13 +156,14 @@ class VoiceAgent {
           await new Promise(resolve => setTimeout(resolve, callDelay));
         }
         
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`[VoiceAgent ${this.agentId}] Failed to call ${candidate.phone}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         results.push({
           candidateId: candidate.id,
           phone: candidate.phone,
           status: 'failed',
-          error: error.message,
+          error: errorMessage,
           agentId: this.agentId
         });
       }
@@ -179,7 +181,11 @@ class VoiceAgent {
   private async makeVoiceCall(candidate: any, campaign: any, config: VoiceAgentConfig) {
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+    const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER') || '';
+
+    if (!twilioPhoneNumber) {
+      throw new Error('TWILIO_PHONE_NUMBER not configured');
+    }
 
     try {
       const voiceMessage = config.message || campaign.template_voice || 
@@ -253,8 +259,9 @@ class VoiceAgent {
         agentId: this.agentId
       };
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`[VoiceAgent ${this.agentId}] Call failed for ${candidate.phone}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       // Log failed analytics event
       await supabase
@@ -267,7 +274,7 @@ class VoiceAgent {
           status: 'failed',
           metadata: { 
             agentId: this.agentId,
-            error: error.message
+            error: errorMessage
           },
           timestamp: new Date().toISOString()
         });

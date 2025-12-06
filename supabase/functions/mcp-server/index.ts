@@ -219,13 +219,38 @@ Provide predictions in JSON format:
       case 'resources/list':
         return this.listResources();
       case 'resources/read':
-        return this.readResource(params.uri);
+        return this.fetchResource(params.uri);
       case 'prompts/list':
         return this.listPrompts();
       case 'prompts/get':
         return this.getPrompt(params.name, params.arguments);
       default:
         throw new Error(`Unknown method: ${method}`);
+    }
+  }
+
+  private async fetchResource(uri: string): Promise<any> {
+    switch (uri) {
+      case 'campaign://active':
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('status', 'active');
+        return { content: campaigns };
+      case 'candidates://all':
+        const { data: candidates } = await supabase
+          .from('candidates')
+          .select('*');
+        return { content: candidates };
+      case 'analytics://recent':
+        const { data: analytics } = await supabase
+          .from('campaign_analytics')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        return { content: analytics };
+      default:
+        throw new Error(`Unknown resource: ${uri}`);
     }
   }
 

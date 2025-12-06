@@ -81,6 +81,11 @@ async function tavilySearch(query: string): Promise<string> {
 
 // External Tool: Serper Search (for structured college data)
 async function serperSearch(query: string): Promise<string> {
+  if (!SERPER_API_KEY) {
+    console.warn('SERPER_API_KEY not configured, skipping Serper search');
+    return 'Serper search unavailable - API key not configured';
+  }
+  
   try {
     const response = await fetch('https://google.serper.dev/search', {
       method: 'POST',

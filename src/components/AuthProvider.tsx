@@ -193,7 +193,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL}dashboard`;
+    // Use origin only for redirect - the AuthNavigationHandler will redirect to dashboard after login
+    const redirectUrl = `${window.location.origin}/`;
     console.log('Google Sign-In Redirect URL:', redirectUrl);
 
     const { error } = await supabase.auth.signInWithOAuth({

@@ -2,32 +2,32 @@
   "name": "AdmitConnect AI",
   "short_name": "AdmitConnect",
   "description": "AI-powered college admission campaign management platform",
-  "start_url": "/",
+  "start_url": "/admit-ai-nexus/",
   "display": "standalone",
   "background_color": "#0A0F1E",
   "theme_color": "#5B7FED",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/app-logo.png",
+      "src": "./app-logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/app-logo.png",
+      "src": "./app-logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/app-logo.png",
+      "src": "./app-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/app-logo.png",
+      "src": "./app-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

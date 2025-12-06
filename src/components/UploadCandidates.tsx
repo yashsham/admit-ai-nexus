@@ -68,92 +68,136 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
     }
   };
 
+  const [processing, setProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<string>('');
+
+  // Import helpers (you would add imports at top)
+  // import { extractTextFromFile } from '@/lib/fileParser';
+  // import { extractCandidatesFromText } from '@/lib/candidateExtractor';
+
   const parseFile = async (file: File) => {
     try {
+      // 1. Handle regular CSV (fast path)
       if (file.name.endsWith('.csv')) {
-        Papa.parse(file, {
-          header: true,
-          skipEmptyLines: true,
-          transformHeader: (header) => header.toLowerCase().trim(),
-          complete: (results) => {
-            const parsedData: Candidate[] = [];
-            const errors: string[] = [];
-
-            results.data.forEach((row: any, index) => {
-              // Map common field names to our schema
-              const candidate: Candidate = {
-                name: row.name || row['full name'] || row['candidate name'] || '',
-                phone: row.phone || row.mobile || row['phone number'] || row['mobile number'] || '',
-                email: row.email || row['email address'] || undefined,
-                city: row.city || row.location || row.address || undefined,
-                course: row.course || row.program || row.interest || undefined
-              };
-
-              if (candidate.name && candidate.phone) {
-                // Basic validation
-                if (candidate.phone.length < 10) {
-                  // console.warn(`Row ${index + 1}: Invalid phone number`);
-                }
-                parsedData.push(candidate);
-              } else {
-                // console.warn(`Row ${index + 1}: Missing required fields (name or phone)`);
-              }
-            });
-
-            if (parsedData.length === 0) {
-              toast({
-                title: "No valid candidates found",
-                description: "Please check your CSV headers. Required: name, phone",
-                variant: "destructive",
-              });
-              return;
-            }
-
-            setCandidates(parsedData);
-            setPreview(true);
-            toast({
-              title: "File parsed successfully",
-              description: `Found ${parsedData.length} valid candidates`,
-            });
-          },
-          error: (error) => {
-            console.error('CSV Parsing Error:', error);
-            toast({
-              title: "Error parsing CSV",
-              description: error.message,
-              variant: "destructive",
-            });
-          }
-        });
-      } else if (file.name.endsWith('.json')) {
-        const text = await file.text();
-        const jsonData = JSON.parse(text);
-        if (Array.isArray(jsonData)) {
-          const parsedData = jsonData
-            .filter(item => item.name && item.phone)
-            .map(item => ({
-              name: item.name,
-              phone: item.phone,
-              email: item.email,
-              city: item.city,
-              course: item.course
-            }));
-
-          setCandidates(parsedData);
-          setPreview(true);
-          toast({
-            title: "File parsed successfully",
-            description: `Found ${parsedData.length} valid candidates`,
-          });
-        }
+        parseCSV(file);
+        return;
       }
-    } catch (error) {
+
+      // 2. Handle JSON (fast path)
+      if (file.name.endsWith('.json')) {
+        parseJSON(file);
+        return;
+      }
+
+      // 3. Handle other formats with AI extraction
+      setProcessing(true);
+      setProcessingStatus('Extracting text from file...');
+
+      // Dynamic import to avoid SSR issues if any
+      const { extractTextFromFile } = await import('@/lib/fileParser');
+      const { extractCandidatesFromText } = await import('@/lib/candidateExtractor');
+
+      const text = await extractTextFromFile(file);
+
+      if (!text || text.trim().length === 0) {
+        throw new Error("Could not extract any text from the file.");
+      }
+
+      setProcessingStatus('AI analyzing candidate data...');
+      const extractedCandidates = await extractCandidatesFromText(text);
+
+      if (extractedCandidates.length === 0) {
+        toast({
+          title: "No candidates found",
+          description: "AI could not identify any candidate information in this file.",
+          variant: "destructive",
+        });
+        setProcessing(false);
+        return;
+      }
+
+      setCandidates(extractedCandidates);
+      setPreview(true);
+      toast({
+        title: "File analyzed successfully",
+        description: `AI found ${extractedCandidates.length} potential candidates`,
+      });
+
+    } catch (error: any) {
       console.error('Error parsing file:', error);
       toast({
         title: "Error parsing file",
-        description: "Please check your file format and try again",
+        description: error.message || "Failed to process file with AI.",
         variant: "destructive",
       });
+    } finally {
+      setProcessing(false);
+      setProcessingStatus('');
+    }
+  };
+
+  const parseCSV = (file: File) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header) => header.toLowerCase().trim(),
+      complete: (results) => {
+        const parsedData: Candidate[] = [];
+        results.data.forEach((row: any) => {
+          const candidate: Candidate = {
+            name: row.name || row['full name'] || row['candidate name'] || '',
+            phone: row.phone || row.mobile || row['phone number'] || row['mobile number'] || '',
+            email: row.email || row['email address'] || undefined,
+            city: row.city || row.location || row.address || undefined,
+            course: row.course || row.program || row.interest || undefined
+          };
+
+          if (candidate.name && candidate.phone) {
+            // Basic validation to ensure phone is somewhat valid (clean it)
+            const cleanPhone = candidate.phone.replace(/[^0-9]/g, '');
+            if (cleanPhone.length >= 10) {
+              candidate.phone = cleanPhone; // Use cleaned phone
+              parsedData.push(candidate);
+            }
+          }
+        });
+
+        if (parsedData.length === 0) {
+          toast({ title: "No valid candidates found", description: "Check CSV headers (name, phone)", variant: "destructive" });
+          return;
+        }
+
+        setCandidates(parsedData);
+        setPreview(true);
+        toast({ title: "CSV parsed successfully", description: `Found ${parsedData.length} valid candidates` });
+      },
+      error: (error) => {
+        toast({ title: "Error parsing CSV", description: error.message, variant: "destructive" });
+      }
+    });
+  };
+
+  const parseJSON = async (file: File) => {
+    try {
+      const text = await file.text();
+      const jsonData = JSON.parse(text);
+      if (Array.isArray(jsonData)) {
+        const parsedData = jsonData
+          .filter(item => item.name && item.phone)
+          .map(item => ({
+            name: item.name,
+            phone: item.phone,
+            email: item.email,
+            city: item.city,
+            course: item.course
+          }));
+
+        setCandidates(parsedData);
+        setPreview(true);
+        toast({ title: "JSON parsed successfully", description: `Found ${parsedData.length} valid candidates` });
+      }
+    } catch (e) {
+      toast({ title: "invalid JSON", variant: "destructive" });
     }
   };
 
@@ -300,13 +344,20 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
                   <p className="mb-2 text-sm text-muted-foreground">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-muted-foreground">CSV or JSON files only</p>
+                  <p className="text-xs text-muted-foreground">CSV, JSON, PDF, DOCX, Images</p>
+                  {processing && (
+                    <div className="mt-4 flex flex-col items-center">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                      <p className="mt-2 text-xs text-primary font-medium animate-pulse">{processingStatus}</p>
+                    </div>
+                  )}
                 </div>
                 <Input
                   id="file-upload"
                   type="file"
                   className="hidden"
-                  accept=".csv,.json"
+                  accept=".csv,.json,.pdf,.docx,.png,.jpg,.jpeg,.webp,.txt"
+                  disabled={processing}
                   onChange={handleFileChange}
                 />
               </label>

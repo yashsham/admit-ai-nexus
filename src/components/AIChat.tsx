@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChatService } from "@/lib/ai/ChatService";
+import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,9 +21,11 @@ interface Message {
 interface AIChatProps {
   sessionId?: string;
   onNewSession?: (sessionId: string) => void;
+  campaigns?: any[];
+  stats?: any;
 }
 
-export const AIChat = ({ sessionId, onNewSession }: AIChatProps) => {
+export const AIChat = ({ sessionId, onNewSession, campaigns, stats }: AIChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -125,7 +128,13 @@ export const AIChat = ({ sessionId, onNewSession }: AIChatProps) => {
         content: msg.content
       }));
 
-      const response = await chatService.current.generateResponse(userMessage, conversationHistory);
+      // Pass dashboard context (campaigns and stats) to the chat service
+      const dashboardContext = {
+        campaigns,
+        stats
+      };
+
+      const response = await chatService.current.generateResponse(userMessage, conversationHistory, dashboardContext);
       return response.content;
     } catch (error) {
       console.error('Error calling AI chat:', error);
@@ -231,11 +240,13 @@ export const AIChat = ({ sessionId, onNewSession }: AIChatProps) => {
 
               <div
                 className={`max-w-[70%] rounded-lg p-3 ${message.role === 'user'
-                    ? 'bg-primary text-primary-foreground ml-auto'
-                    : 'bg-muted'
+                  ? 'bg-primary text-primary-foreground ml-auto'
+                  : 'bg-muted'
                   }`}
               >
-                <p className="text-sm">{message.content}</p>
+                <div className="text-sm prose prose-sm dark:prose-invert max-w-none break-words">
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                </div>
                 <p className="text-xs opacity-70 mt-1">
                   {message.timestamp.toLocaleTimeString([], {
                     hour: '2-digit',

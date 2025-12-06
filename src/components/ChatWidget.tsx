@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ChatService } from "@/lib/ai/ChatService";
+import ReactMarkdown from 'react-markdown';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,8 +32,8 @@ export const ChatWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Initialize ChatService with 'general' context
-  const chatService = useRef(new ChatService('general'));
+  // Initialize ChatService with 'counselor' context
+  const chatService = useRef(new ChatService('counselor'));
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -152,7 +153,9 @@ export const ChatWidget = () => {
                           : "bg-secondary text-secondary-foreground hover-scale"
                       )}
                     >
-                      {message.content}
+                      <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                      </div>
                     </div>
                     {message.role === "user" && (
                       <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center flex-shrink-0 mt-1">

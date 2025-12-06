@@ -285,7 +285,7 @@ const Dashboard = () => {
 
               {/* Right Column - AI Chat & Quick Actions */}
               <div className="space-y-6">
-                <AIChat />
+                <AIChat campaigns={campaigns} stats={stats} />
 
                 <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">

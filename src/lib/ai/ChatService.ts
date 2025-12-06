@@ -22,7 +22,7 @@ export interface ChatResponse {
   sources?: ChatSource[];
 }
 
-export type ChatContext = 'general' | 'dashboard';
+export type ChatContext = 'general' | 'dashboard' | 'counselor';
 
 // Configuration
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
@@ -48,7 +48,12 @@ Your role:
 Provide clear, accurate information about the platform's features and capabilities. Offer professional guidance on college admission trends and best practices. Use real-time web search when needed for current information. Help users navigate the platform and understand how to use its features effectively.
 
 Communication style:
-Write in a natural, conversational tone similar to ChatGPT. Be professional but approachable. Keep responses concise and to the point. Avoid excessive formatting like bold text, emojis, or bullet points unless they genuinely improve clarity. Use simple paragraphs for most explanations. When citing external sources from web searches, use [1], [2] notation naturally within the text.`;
+Use clear, professional Markdown formatting for EVERY response.
+- **Bold Headers**: Use bold text for key topics or section titles.
+- **Lists**: ALWAYS use bullet points or numbered lists for steps, items, or features.
+- **Paragraphs**: Keep paragraphs short (2-3 sentences) with clear line breaks between them.
+- **No Blocks**: Avoid long walls of text. Break information down visually.
+- **Tone**: Natural, conversational (like ChatGPT) but structured professionally.`;
 
 const DASHBOARD_SYSTEM_PROMPT = `You are the AdmitConnect Campaign Expert, a specialized assistant for users working in the AdmitConnect Dashboard.
 
@@ -79,7 +84,28 @@ For feature navigation, give clear step-by-step instructions on how to find and 
 For strategy consultation, offer professional recommendations on campaign planning and execution, channel selection based on demographics, content personalization techniques, and engagement optimization.
 
 Communication style:
-Write naturally and conversationally, similar to ChatGPT. Be professional and consultative, but avoid overly formal language. Focus on providing actionable, results-driven advice. Use specific examples from the dashboard when relevant. Give step-by-step guidance for complex processes, but keep explanations concise. Avoid excessive formatting - write in clear paragraphs and only use lists when they genuinely make the information clearer.`;
+Use clear, professional Markdown formatting for EVERY response.
+- **Bold Headers**: Use bold text for key topics or section titles.
+- **Lists**: ALWAYS use bullet points or numbered lists for steps, items, or features.
+- **Paragraphs**: Keep paragraphs short (2-3 sentences) with clear line breaks between them.
+- **No Blocks**: Avoid long walls of text. Break information down visually.
+- **Tone**: Consultative and actionable.`;
+
+const COUNSELOR_SYSTEM_PROMPT = `You are the AdmitConnect AI College Counselor, a strict and focused assistant dedicated ONLY to college admissions, student counseling, and educational guidance.
+
+Instructions:
+1. STRICT DOMAIN RESTRICTION: You must ONLY answer questions related to college admissions, university information, applications, scholarships, exams, student life, and academic guidance.
+2. GUARDRAILS: If a user asks a question unrelated to education or admissions (e.g., sports, politics, entertainment, general chit-chat unrelated to college), you must POLITELY REFUSE to answer.
+   - Example valid refusal: "I apologize, but I am specialized only in college admissions and educational counseling. I cannot assist with that topic."
+3. SOURCE-BASED ANSWERS: You will be provided with information from web searches. You must use this information to answer user questions accurately. Cite your sources using [1], [2] notation.
+4. TONE: Professional, encouraging, empathetic, and formal yet accessible. You are guiding students through a stressful process.
+5. FORMATTING: STRICTLY use professional Markdown.
+   - Use **Bold** for major points.
+   - Use bullet points for lists.
+   - Separate thoughts with new lines.
+   - Make it easy to read on mobile devices.
+
+You are NOT a general purpose AI. You are a specialized College Counselor. Do not break character. Do not answer questions outside your scope.`;
 
 export class ChatService {
   private context: ChatContext;
@@ -167,7 +193,7 @@ export class ChatService {
     }
   }
 
-  public async generateResponse(userMessage: string, history: ChatMessage[] = []): Promise<ChatResponse> {
+  public async generateResponse(userMessage: string, history: ChatMessage[] = [], dashboardContext?: any): Promise<ChatResponse> {
     if (!this.model || !this.isAvailable) {
       return {
         content: "I'm sorry, the AI chat service is currently unavailable. Please check the API configuration.",
@@ -180,14 +206,30 @@ export class ChatService {
       let contextContent = '';
 
       // 1. Determine if we need external search (RAG)
-      if (userMessage.length > 10) {
-        if (this.context === 'general' || userMessage.toLowerCase().includes('search') || userMessage.toLowerCase().includes('news')) {
-          sources = await this.searchTavily(userMessage);
-        }
+      // For counselor, we ALWAYS search if the query seems informational, to ensure accuracy.
+      // We can also add restrictions here if a specific site is needed (site:example.edu)
+      if (
+        this.context === 'counselor' ||
+        (userMessage.length > 10 && (this.context === 'general' || userMessage.toLowerCase().includes('search') || userMessage.toLowerCase().includes('news')))
+      ) {
+        sources = await this.searchTavily(userMessage);
       }
 
       // 2. Construct System Prompt and Context
-      const systemPrompt = this.context === 'dashboard' ? DASHBOARD_SYSTEM_PROMPT : GENERAL_SYSTEM_PROMPT;
+      let systemPrompt = GENERAL_SYSTEM_PROMPT;
+      if (this.context === 'dashboard') systemPrompt = DASHBOARD_SYSTEM_PROMPT;
+      if (this.context === 'counselor') systemPrompt = COUNSELOR_SYSTEM_PROMPT;
+
+      // Inject Dashboard Context if available
+      if (dashboardContext && this.context === 'dashboard') {
+        const statsSummary = dashboardContext.stats ?
+          `\nCurrent Dashboard Stats:\n- Total Campaigns: ${dashboardContext.stats.totalCampaigns}\n- Messages Sent: ${dashboardContext.stats.messagesSent}\n- Response Rate: ${dashboardContext.stats.responseRate}%` : '';
+
+        const campaignsSummary = dashboardContext.campaigns && dashboardContext.campaigns.length > 0 ?
+          `\nRecent Campaigns:\n${dashboardContext.campaigns.slice(0, 5).map((c: any) => `- ${c.name} (${c.status}): ${c.candidates_count || 0} candidates`).join('\n')}` : '';
+
+        systemPrompt += `\n\nREAL-TIME CONTEXT:\n${statsSummary}\n${campaignsSummary}\n\nUse this real-time data to answer user questions about their specific campaigns.`;
+      }
 
       if (sources.length > 0) {
         contextContent = `\n\nHere is some relevant information found from the web:\n${sources.map((s, i) => `[${i + 1}] ${s.title}: ${s.content}`).join('\n')}\n\nUse this information to answer the user's question if relevant. Cite sources using [1], [2] notation.`;

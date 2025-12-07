@@ -92,6 +92,27 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
 
       if (error) throw error;
 
+      // Send email using FormSubmit.co (AJAX)
+      const response = await fetch("https://formsubmit.co/ajax/admitconnectAI@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          message: message,
+          _subject: `New Contact from ${name}`,
+          _template: "table",
+          _captcha: "false"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+
       toast({
         title: "Message sent successfully!",
         description: "We'll get back to you within 24 hours.",
@@ -103,10 +124,10 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
       setMessage("");
       onOpenChange(false);
     } catch (error) {
-      console.error('Error submitting contact form:', error);
+      console.error('Error sending message:', error);
       toast({
         title: "Failed to send message",
-        description: "Please try again or email us directly.",
+        description: "Please check your internet connection and try again.",
         variant: "destructive",
       });
     } finally {

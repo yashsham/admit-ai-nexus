@@ -51,21 +51,45 @@ export const ScheduleDemoModal = ({ open, onOpenChange }: ScheduleDemoModalProps
       const { error } = await supabase
         .from('demo_requests')
         .insert([
-          { 
-            name, 
-            email, 
-            company, 
-            role, 
-            preferred_time: timeSlot, 
-            message 
+          {
+            name,
+            email,
+            company,
+            role,
+            preferred_time: timeSlot,
+            message
           }
         ]);
 
       if (error) throw error;
 
+      // Send email using FormSubmit.co (AJAX)
+      const response = await fetch("https://formsubmit.co/ajax/admitconnectAI@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          company: company,
+          role: role,
+          preferred_time: timeSlot,
+          message: message,
+          _subject: `New Demo Request from ${name}`,
+          _template: "table",
+          _captcha: "false"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+
       toast({
         title: "Demo scheduled successfully!",
-        description: "We'll send you a calendar invite within the next hour. Check admitconnectAI@gmail.com",
+        description: "We'll send you a calendar invite shortly.",
       });
 
       // Reset form
@@ -80,7 +104,7 @@ export const ScheduleDemoModal = ({ open, onOpenChange }: ScheduleDemoModalProps
       console.error('Error scheduling demo:', error);
       toast({
         title: "Failed to schedule demo",
-        description: "Please try again or contact us directly.",
+        description: "Please check your internet connection and try again.",
         variant: "destructive",
       });
     } finally {

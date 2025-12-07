@@ -37,8 +37,8 @@ const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
   };
 
   return (
-    <nav 
-      id="navigation" 
+    <nav
+      id="navigation"
       className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50"
       role="navigation"
       aria-label="Main navigation"
@@ -47,9 +47,11 @@ const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo with Hover Animation */}
           <div className="flex items-center space-x-2 cursor-pointer logo-hover" onClick={() => navigate("/")}>
-            <div className="w-10 h-10 bg-ai-gradient rounded-lg flex items-center justify-center">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
+            <img
+              src="/app-logo.png"
+              alt="AdmitConnect AI Logo"
+              className="w-10 h-10 object-contain rounded-lg"
+            />
             <span className="text-xl font-bold bg-ai-gradient bg-clip-text text-transparent logo-colorful">
               AdmitConnect AI
             </span>
@@ -241,9 +243,9 @@ const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
           </div>
         )}
       </div>
-      
-      <AuthModal 
-        open={authModalOpen} 
+
+      <AuthModal
+        open={authModalOpen}
         onOpenChange={setAuthModalOpen}
         defaultMode={authMode}
       />

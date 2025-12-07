@@ -1,4 +1,4 @@
-import{C as s,S as c,H as i}from"./index-YpGFvHMb.js";const m="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",p=async t=>{const o=t.slice(0,2e4),a=new s({apiKey:m,model:"llama-3.3-70b-versatile",temperature:0,maxTokens:4096}),n=`
+import{C as s,S as c,H as i}from"./index-DnImMrH_.js";const m="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",p=async t=>{const a=t.slice(0,2e4),o=new s({apiKey:m,model:"llama-3.3-70b-versatile",temperature:0,maxTokens:4096}),n=`
     You are a data extraction AI. Your job is to extract candidate information from the provided text.
     
     The text may contain names, phone numbers, emails, locations (cities), and course interests.
@@ -20,4 +20,4 @@ import{C as s,S as c,H as i}from"./index-YpGFvHMb.js";const m="gsk_wgcBjzN430Pd4
         "course": "B.Tech"
       }
     ]
-  `;try{const r=(await a.invoke([new c(n),new i(o)])).content.replace(/```json/g,"").replace(/```/g,"").trim();return JSON.parse(r)}catch(e){throw console.error("Error extracting candidates with AI:",e),new Error("Failed to extract candidates from text")}};export{p as extractCandidatesFromText};
+  `;try{const r=(await o.invoke([new c(n),new i(a)])).content.replace(/```json/g,"").replace(/```/g,"").trim();return JSON.parse(r)}catch(e){throw console.error("Error extracting candidates with AI:",e),new Error("Failed to extract candidates from text")}};export{p as extractCandidatesFromText};

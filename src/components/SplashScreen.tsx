@@ -35,7 +35,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         {/* Logo with scale animation */}
         <div className="relative z-10 animate-[scale-in_0.5s_ease-out]">
           <img
-            src="/app-logo.png"
+            src={`${import.meta.env.BASE_URL}app-logo.png`}
             alt="AdmitConnect AI"
             className="w-24 h-24 rounded-2xl shadow-2xl shadow-primary/50 animate-[float_3s_ease-in-out_infinite]"
           />

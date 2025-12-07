@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 import { FormField } from "@/components/ui/form-field";
 import { RippleButton } from "@/components/ui/ripple-button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -24,7 +25,7 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
   const [successes, setSuccesses] = useState<Record<string, boolean>>({});
 
   const { toast } = useToast();
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -158,12 +159,41 @@ export const AuthModal = ({ open, onOpenChange, defaultMode = "signin" }: AuthMo
         await signIn(formData.email, formData.password);
         onOpenChange(false);
       } else if (mode === 'forgot') {
-        // TODO: Implement forgot password functionality
-        toast({
-          title: "Password reset sent!",
-          description: "Check your email for reset instructions.",
-        });
-        setMode('signin');
+        try {
+          // Call our custom Edge Function to send the email
+          const { error } = await supabase.functions.invoke('send-reset-email', {
+            body: {
+              email: formData.email,
+              redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}reset-password`
+            }
+          });
+
+          if (error) throw error;
+
+          toast({
+            title: "Password reset sent!",
+            description: "Check your email for reset instructions.",
+          });
+          setMode('signin');
+        } catch (error: any) {
+          console.error("Reset failed details:", error);
+          let errorMessage = error.message;
+          if (!errorMessage && typeof error === 'object') {
+            errorMessage = JSON.stringify(error);
+          }
+          if (error && error.context && error.context.json) {
+            // Attempt to extract message from response body if available
+            error.context.json().then((body: any) => {
+              console.log("Error body:", body);
+            }).catch(() => { });
+          }
+
+          toast({
+            title: "Request Failed",
+            description: errorMessage || "Check console for details",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error: any) {
       console.error('Auth error:', error);

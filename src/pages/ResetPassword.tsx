@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FormField } from "@/components/ui/form-field";
@@ -19,46 +19,100 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Listen for auth state changes to handle password recovery flow
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        // User is in password recovery mode, session is valid
-        console.log("Password recovery session active");
-      } else if (event === "SIGNED_IN") {
-        // User is signed in, potentially after recovery or just normal login
-        // We allow them to stay on this page to reset password if they wish
-      } else if (event === "SIGNED_OUT") {
-        // If they are signed out, they shouldn't be here unless they are just arriving
-        // We give a small grace period or check if we have a hash
-        const hash = window.location.hash;
-        if (!hash || !hash.includes("type=recovery")) {
-          // If no recovery hash and no session, redirect
-          // But we wait a bit to ensure it's not just loading
-        }
-      }
-    });
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type");
+  const email = searchParams.get("email");
 
-    // Initial check
+  // If token is present, we need manual verification.
+  const [verificationNeeded, setVerificationNeeded] = useState(!!token || !!tokenHash);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    // If we have a token, we are effectively in "recovery mode" but need manual verification
+    if (token || tokenHash) {
+      return;
+    }
+
+    // Standard session check (fallback for when session is already established)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        // If no session, check if we have the recovery hash, if so, wait for the event
-        const hash = window.location.hash;
-        if (!hash || !hash.includes("type=recovery")) {
-          toast({
-            title: "Invalid or expired reset link",
-            description: "Please request a new password reset link.",
-            variant: "destructive",
-          });
-          navigate("/auth");
-        }
+        toast({
+          title: "Invalid or expired reset link",
+          description: "Please request a new password reset link.",
+          variant: "destructive",
+        });
+        navigate("/auth");
       }
     });
+  }, [navigate, toast, token, tokenHash]);
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate, toast]);
+  const handleVerify = async () => {
+    if ((!token && !tokenHash) || !email) return;
+    setIsVerifying(true);
+    console.log("Verifying Identity with:", { token, tokenHash, email, type: 'recovery' });
+
+    try {
+      let error;
+
+      // Heuristic: If we have a token_hash explicitly, use it.
+      // IF we have a 'token' but it looks like a hash (long hex string), try treating it as a token_hash first.
+      const candidateHash = tokenHash || (token && token.length > 20 ? token : null);
+
+      if (candidateHash) {
+        console.log("Using token_hash flow (detected hash)");
+        const res = await supabase.auth.verifyOtp({
+          token_hash: candidateHash,
+          type: 'recovery',
+          // email is NOT allowed with token_hash (PKCE flow)
+        });
+        error = res.error;
+
+        // Fallback: If token_hash failed but we synthesized it from 'token', try raw 'token' just in case.
+        if (error && !tokenHash && token) {
+          console.log("token_hash failed, retrying with standard token...");
+          const retryRes = await supabase.auth.verifyOtp({
+            token,
+            type: 'recovery',
+            email
+          });
+          if (!retryRes.error) {
+            error = null;
+          }
+        }
+      } else {
+        console.log("Using standard token flow");
+        const res = await supabase.auth.verifyOtp({
+          token,
+          type: 'recovery',
+          email
+        });
+        error = res.error;
+      }
+
+      if (error) {
+        console.error("verifyOtp error:", error);
+        throw error;
+      }
+
+      console.log("Identity verified successfully");
+      setVerificationNeeded(false);
+      toast({
+        title: "Identity Verified",
+        description: "Please set your new password.",
+      });
+    } catch (error: any) {
+      console.error("Verification Catch Block:", error);
+      toast({
+        title: "Verification Failed",
+        description: error.message || "Link expired or invalid",
+        variant: "destructive"
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   const validatePassword = (value: string) => {
     const newErrors = { ...errors };
@@ -159,6 +213,32 @@ const ResetPassword = () => {
                 Redirecting you to sign in...
               </p>
             </div>
+          </div>
+        ) : verificationNeeded ? (
+          <div className="text-center space-y-6 animate-fade-in">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-ai-gradient animate-bounce-in">
+              <KeyRound className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Verify Your Identity</h1>
+            <p className="text-muted-foreground">
+              Click the button below to verify your email and reset your password.
+            </p>
+            <RippleButton
+              onClick={handleVerify}
+              variant="hero"
+              size="lg"
+              className="w-full"
+              disabled={isVerifying}
+            >
+              {isVerifying ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  Verifying...
+                </>
+              ) : (
+                "Verify Identity"
+              )}
+            </RippleButton>
           </div>
         ) : (
           <div className="space-y-6">

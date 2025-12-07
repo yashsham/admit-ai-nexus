@@ -48,7 +48,7 @@ const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
           {/* Logo with Hover Animation */}
           <div className="flex items-center space-x-2 cursor-pointer logo-hover" onClick={() => navigate("/")}>
             <img
-              src="/app-logo.png"
+              src={`${import.meta.env.BASE_URL}app-logo.png`}
               alt="AdmitConnect AI Logo"
               className="w-10 h-10 object-contain rounded-lg"
             />

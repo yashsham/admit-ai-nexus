@@ -18,7 +18,7 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar 
+      <Navbar
         onContactClick={() => setShowContact(true)}
         onScheduleClick={() => setShowSchedule(true)}
       />
@@ -117,19 +117,19 @@ const About = () => {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">Meet the AdmitConnect AI Team</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Our passionate team of AI experts, educators, and developers is dedicated to 
+            Our passionate team of AI experts, educators, and developers is dedicated to
             revolutionizing the college admission process.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button 
+            <Button
               size="lg"
               variant="hero"
-              onClick={() => window.open('/our-services', '_blank')}
+              onClick={() => window.open(`${import.meta.env.BASE_URL}our-services`, '_blank')}
               className="text-lg px-8 py-3"
             >
               Learn More About Our Services
             </Button>
-            <Button 
+            <Button
               size="lg"
               variant="outline"
               onClick={() => setShowContact(true)}
@@ -202,9 +202,9 @@ const About = () => {
               Contact Sales
             </Button>
           </div>
-          
+
           <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
-            <a 
+            <a
               href="mailto:admitconnectAI@gmail.com"
               className="flex flex-col items-center p-6 bg-card rounded-lg border border-border/50 hover:border-primary/50 transition-all hover:shadow-lg group"
             >
@@ -212,7 +212,7 @@ const About = () => {
               <h3 className="font-semibold mb-2">Email</h3>
               <p className="text-muted-foreground text-sm text-center break-all">admitconnectAI@gmail.com</p>
             </a>
-            <a 
+            <a
               href="https://wa.me/918439663198"
               target="_blank"
               rel="noopener noreferrer"
@@ -226,13 +226,13 @@ const About = () => {
         </div>
       </section>
 
-      <ContactModal 
-        open={showContact} 
-        onOpenChange={setShowContact} 
+      <ContactModal
+        open={showContact}
+        onOpenChange={setShowContact}
       />
-      <ScheduleDemoModal 
-        open={showSchedule} 
-        onOpenChange={setShowSchedule} 
+      <ScheduleDemoModal
+        open={showSchedule}
+        onOpenChange={setShowSchedule}
       />
       <Footer />
       <BackToTop />

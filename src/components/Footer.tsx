@@ -1,5 +1,6 @@
 import { Mail, MessageCircle, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -25,15 +26,15 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-lg">Quick Links</h3>
             <div className="flex flex-col space-y-2">
-              <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
                 Home
-              </a>
-              <a href="/about" className="text-muted-foreground hover:text-foreground transition-colors">
+              </Link>
+              <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
                 About
-              </a>
-              <a href="/our-services" className="text-muted-foreground hover:text-foreground transition-colors">
+              </Link>
+              <Link to="/our-services" className="text-muted-foreground hover:text-foreground transition-colors">
                 Services
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -41,7 +42,7 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-lg">Get in Touch</h3>
             <div className="flex flex-col space-y-3">
-              <a 
+              <a
                 href="https://mail.google.com/mail/?view=cm&fs=1&to=admitconnectAI@gmail.com"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -67,7 +68,7 @@ const Footer = () => {
                 asChild
                 className="hover-lift"
               >
-                <a 
+                <a
                   href="https://mail.google.com/mail/?view=cm&fs=1&to=admitconnectAI@gmail.com"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -82,9 +83,9 @@ const Footer = () => {
                 asChild
                 className="hover-lift"
               >
-                <a 
-                  href="https://wa.me/918439663198" 
-                  target="_blank" 
+                <a
+                  href="https://wa.me/918439663198"
+                  target="_blank"
                   rel="noopener noreferrer"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />

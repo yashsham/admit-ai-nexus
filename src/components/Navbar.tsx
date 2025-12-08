@@ -50,7 +50,7 @@ const Navbar = ({ onContactClick, onScheduleClick }: NavbarProps) => {
             <img
               src={`${import.meta.env.BASE_URL}app-logo.png`}
               alt="AdmitConnect AI Logo"
-              className="w-12 h-12 object-contain rounded-lg"
+              className="w-16 h-16 object-contain rounded-lg"
             />
             <span className="text-xl font-bold bg-ai-gradient bg-clip-text text-transparent logo-colorful">
               AdmitConnect AI

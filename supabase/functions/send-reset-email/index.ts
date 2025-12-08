@@ -99,7 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
       <p><a href="${recoveryLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
       <p>If you didn't ask to reset your password, you can ignore this email.</p>
       <br>
-      <p><small>This link will expire in 24 hours.</small></p>
+      <p><small>This link will expire in 1 hour.</small></p>
     `;
 
         await transporter.sendMail({

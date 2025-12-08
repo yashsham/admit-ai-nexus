@@ -31,11 +31,19 @@ const App = () => {
   const [appReady, setAppReady] = useState(false);
 
   useEffect(() => {
+    // Check if we are on the reset password page
+    const isResetPassword = window.location.pathname.includes("/reset-password");
+
     // Check if this is the first load or PWA launch
     const isFirstLoad = !sessionStorage.getItem("app-loaded");
     const isPWA = window.matchMedia("(display-mode: standalone)").matches;
 
-    if (isFirstLoad || isPWA) {
+    if (isResetPassword) {
+      // Skip splash screen entirely for reset password to avoid token expiry
+      setShowSplash(false);
+      setAppReady(true);
+      sessionStorage.setItem("app-loaded", "true");
+    } else if (isFirstLoad || isPWA) {
       sessionStorage.setItem("app-loaded", "true");
       setShowSplash(true);
     } else {

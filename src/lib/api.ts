@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // Base URL for the Python backend
-const API_BASE_URL = 'http://localhost:8000/api';
+// Base URL for the Python backend
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export const api = {
     campaigns: {

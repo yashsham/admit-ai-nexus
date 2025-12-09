@@ -1,4 +1,7 @@
-name: Deploy to GitHub Pages
+name: Deploy Frontend to GitHub Pages
+# NOTE: This workflow only deploys the React Frontend.
+# The Python Backend (backend/app.py) must be deployed separately to a cloud provider (e.g., Render, Railway)
+# to work permanently. GitHub Pages does NOT host Python servers.
 
 on:
   push:

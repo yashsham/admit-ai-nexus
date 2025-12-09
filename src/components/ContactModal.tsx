@@ -5,6 +5,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Mail, Send } from "lucide-react";
 
 interface ContactModalProps {
@@ -92,7 +93,7 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
 
       if (error) throw error;
 
-      // Send email using FormSubmit.co (AJAX)
+      // Send email using FormSubmit.co (AJAX) - matching Schedule Demo behavior
       const response = await fetch("https://formsubmit.co/ajax/admitconnectAI@gmail.com", {
         method: "POST",
         headers: {
@@ -103,7 +104,7 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
           name: name,
           email: email,
           message: message,
-          _subject: `New Contact from ${name}`,
+          _subject: `New Contact Request from ${name}`,
           _template: "table",
           _captcha: "false"
         })

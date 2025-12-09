@@ -36,7 +36,7 @@ jobs:
           VITE_LANGCHAIN_PROJECT: ${{ secrets.VITE_LANGCHAIN_PROJECT }}
           VITE_LANGCHAIN_ENDPOINT: ${{ secrets.VITE_LANGCHAIN_ENDPOINT }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_ANON_KEY: "${{ secrets.VITE_SUPABASE_ANON_KEY }}"
           # Note: Supabase Edge Functions run on the server side (Supabase), 
           # so their env vars (SUPABASE_URL, etc.) are set in the Supabase Dashboard, not here.
           # But if your build needs them for some reason, add them.

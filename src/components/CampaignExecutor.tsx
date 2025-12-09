@@ -62,15 +62,9 @@ export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExec
 
     setExecuting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('campaign-orchestrator', {
-        body: {
-          campaignId: campaign.id,
-          channels: selectedChannels,
-          delay: delayMinutes
-        }
-      });
-
-      if (error) throw error;
+      // Direct call to Python backend
+      const { api } = await import('@/lib/api');
+      await api.campaigns.execute(campaign.id);
 
       toast({
         title: "Campaign Started Successfully",
@@ -81,13 +75,9 @@ export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExec
     } catch (error: any) {
       console.error('Campaign execution error:', error);
 
-      // Detailed error message
-      const errorMessage = error.message || "Unknown error occurred";
-      const errorDetails = error.details || error.hint || "";
-
       toast({
         title: "Campaign Execution Failed",
-        description: `${errorMessage}. ${errorDetails}`,
+        description: error.message || "Failed to start execution",
         variant: "destructive"
       });
     } finally {

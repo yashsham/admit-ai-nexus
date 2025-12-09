@@ -145,9 +145,9 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
         const parsedData: Candidate[] = [];
         results.data.forEach((row: any) => {
           const candidate: Candidate = {
-            name: row.name || row['full name'] || row['candidate name'] || '',
-            phone: row.phone || row.mobile || row['phone number'] || row['mobile number'] || '',
-            email: row.email || row['email address'] || undefined,
+            name: row.name || row['student name'] || row['full name'] || row['candidate name'] || '',
+            phone: row.phone || row.mobile || row.contact || row['phone number'] || row['mobile number'] || row.whatsapp || '',
+            email: row.email || row['e-mail'] || row['email address'] || row['e-mail address'] || row.mail || undefined,
             city: row.city || row.location || row.address || undefined,
             course: row.course || row.program || row.interest || undefined
           };
@@ -202,92 +202,39 @@ export const UploadCandidates = ({ campaignId, onUploadComplete }: UploadCandida
   };
 
   const uploadCandidates = async () => {
-    const activeCampaignId = campaignId || selectedCampaignId;
-    if (!user || !activeCampaignId || candidates.length === 0) return;
+    if (!user || !file) return;
 
     setUploading(true);
+    setUploading(true);
     try {
-      // 1. Check for duplicates in the current batch (simple check)
-      const uniqueCandidates = Array.from(new Map(candidates.map(item => [item.phone, item])).values());
+      // Dynamic import of API to avoid circular deps if any
+      const { api } = await import('@/lib/api');
 
-      if (uniqueCandidates.length < candidates.length) {
+      // Use the NEW batch upload endpoint
+      // We send the candidates array that we already parsed (CSV, JSON, PDF, etc.)
+      const campaignIdToSend = campaignId || selectedCampaignId || undefined;
+      const result = await api.candidates.uploadBatch(user.id, candidates, campaignIdToSend);
+
+      if (result.success) {
         toast({
-          title: "Duplicates removed",
-          description: `Removed ${candidates.length - uniqueCandidates.length} duplicate phone numbers from the batch.`,
+          title: "Candidates uploaded successfully",
+          description: result.message,
         });
+
+        // Pass a simplified version of parsed candidates to the parent/callback if needed
+        onUploadComplete?.(candidates);
+      } else {
+        throw new Error(result.message || "Upload failed");
       }
 
-      // 2. Check for duplicates in database
-      // Fetch existing phone numbers for this campaign
-      const { data: existingCandidates, error: fetchError } = await supabase
-        .from('candidates')
-        .select('phone')
-        .eq('campaign_id', activeCampaignId);
-
-      if (fetchError) throw fetchError;
-
-      const existingPhones = new Set(existingCandidates?.map(c => c.phone) || []);
-
-      const newCandidates = uniqueCandidates.filter(c => !existingPhones.has(c.phone));
-
-      if (newCandidates.length === 0) {
-        toast({
-          title: "All candidates already exist",
-          description: "All candidates in this file are already in this campaign.",
-          variant: "destructive",
-        });
-        setUploading(false);
-        return;
-      }
-
-      if (newCandidates.length < uniqueCandidates.length) {
-        toast({
-          title: "Existing candidates skipped",
-          description: `Skipped ${uniqueCandidates.length - newCandidates.length} candidates that are already in this campaign.`,
-        });
-      }
-
-      const candidateData = newCandidates.map(candidate => ({
-        campaign_id: activeCampaignId,
-        name: candidate.name,
-        phone: candidate.phone,
-        email: candidate.email || null,
-        city: candidate.city || null,
-        course: candidate.course || null,
-      }));
-
-      const { error } = await supabase
-        .from('candidates')
-        .insert(candidateData);
-
-      if (error) throw error;
-
-      // Update campaign candidates count
-      // We need to get the current count first or just recount
-      const { count } = await supabase
-        .from('candidates')
-        .select('*', { count: 'exact', head: true })
-        .eq('campaign_id', activeCampaignId);
-
-      await supabase
-        .from('campaigns')
-        .update({ candidates_count: count })
-        .eq('id', activeCampaignId);
-
-      toast({
-        title: "Candidates uploaded successfully",
-        description: `${newCandidates.length} new candidates added to your campaign`,
-      });
-
-      onUploadComplete?.(newCandidates);
       setCandidates([]);
       setFile(null);
       setPreview(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading candidates:', error);
       toast({
         title: "Upload failed",
-        description: "Failed to upload candidates. Please try again.",
+        description: error.message || "Failed to upload candidates. Please try again.",
         variant: "destructive",
       });
     } finally {

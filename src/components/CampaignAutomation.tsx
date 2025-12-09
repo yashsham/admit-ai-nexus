@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { FadeIn } from "@/components/ui/scroll-reveal";
 import { useAuth } from "./AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AutomationRule {
   id: string;
@@ -74,48 +75,50 @@ export const CampaignAutomation = () => {
     email: "Dear {name},\n\nWe noticed you showed interest in {college}. We'd love to answer any questions you might have about our programs.\n\nBest regards,\nAdmissions Team"
   };
 
-  const loadAutomationRules = () => {
+  const loadAutomationRules = async () => {
     if (!user) return;
     setLoading(true);
-    
-    // Load from localStorage or use default mock data
-    const storageKey = `automation_rules_${user.id}`;
-    const storedRules = localStorage.getItem(storageKey);
-    
-    if (storedRules) {
-      try {
-        setAutomationRules(JSON.parse(storedRules));
-      } catch {
-        setAutomationRules([]);
-      }
-    } else {
-      // Default mock data
-      const mockRules: AutomationRule[] = [
-        {
-          id: 'mock-1',
-          name: 'Example WhatsApp Follow-up',
-          trigger: 'no_response',
-          channels: ['whatsapp'],
-          delay: 24,
-          template: defaultTemplates.whatsapp,
-          active: true,
-          user_id: user.id
-        }
-      ];
-      setAutomationRules(mockRules);
-      localStorage.setItem(storageKey, JSON.stringify(mockRules));
+
+    try {
+      const { data, error } = await supabase
+        .from('automations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform snake_case DB columns to component's expected format if needed
+      // But component uses simple keys. Let's align component to use DB structure or map it.
+      // DB: trigger_type, action_type, trigger_config
+      // Component: trigger, channels (in action_config?), template (in action_config?)
+
+      // For now, let's map DB rows to FE structure
+      const rules = (data || []).map(row => ({
+        id: row.id,
+        name: row.name,
+        trigger: row.trigger_type,
+        channels: row.action_config?.channels || [],
+        delay: row.trigger_config?.delay || 24,
+        template: row.action_config?.template || '',
+        active: row.is_active,
+        user_id: row.user_id
+      }));
+
+      setAutomationRules(rules);
+    } catch (error) {
+      console.error("Error loading automations", error);
+      toast({
+        title: "Error",
+        description: "Failed to load automation rules",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
-  const saveRulesToStorage = (rules: AutomationRule[]) => {
-    if (!user) return;
-    const storageKey = `automation_rules_${user.id}`;
-    localStorage.setItem(storageKey, JSON.stringify(rules));
-  };
-
-  const createAutomationRule = () => {
+  const createAutomationRule = async () => {
     if (!user) return;
     if (!newRule.name || !newRule.template || newRule.channels.length === 0) {
       toast({
@@ -126,56 +129,119 @@ export const CampaignAutomation = () => {
       return;
     }
 
-    const ruleData: AutomationRule = {
-      id: `rule-${Date.now()}`,
-      user_id: user.id,
-      ...newRule
-    };
+    try {
+      const dbPayload = {
+        user_id: user.id,
+        name: newRule.name,
+        trigger_type: newRule.trigger,
+        trigger_config: { delay: newRule.delay },
+        action_type: 'send_campaign_message', // specific action
+        action_config: {
+          channels: newRule.channels,
+          template: newRule.template
+        },
+        is_active: newRule.active
+      };
 
-    const updatedRules = [ruleData, ...automationRules];
-    setAutomationRules(updatedRules);
-    saveRulesToStorage(updatedRules);
+      const { data, error } = await supabase
+        .from('automations')
+        .insert([dbPayload])
+        .select()
+        .single();
 
-    setNewRule({
-      name: '',
-      trigger: 'no_response',
-      channels: [],
-      delay: 24,
-      template: '',
-      active: true
-    });
-    setShowNewRule(false);
+      if (error) throw error;
 
-    toast({
-      title: "Success",
-      description: "Automation rule created successfully"
-    });
+      const createdRule: AutomationRule = {
+        id: data.id,
+        name: data.name,
+        trigger: data.trigger_type,
+        channels: data.action_config.channels,
+        delay: data.trigger_config.delay,
+        template: data.action_config.template,
+        active: data.is_active,
+        user_id: data.user_id
+      };
+
+      setAutomationRules([createdRule, ...automationRules]);
+
+      setNewRule({
+        name: '',
+        trigger: 'no_response',
+        channels: [],
+        delay: 24,
+        template: '',
+        active: true
+      });
+      setShowNewRule(false);
+
+      toast({
+        title: "Success",
+        description: "Automation rule created successfully"
+      });
+    } catch (error) {
+      console.error("Error creating automation", error);
+      toast({
+        title: "Error",
+        description: "Failed to save automation rule",
+        variant: "destructive"
+      });
+    }
   };
 
-  const toggleRule = (ruleId: string, currentStatus: boolean) => {
-    const updatedRules = automationRules.map(rule =>
-      rule.id === ruleId
-        ? { ...rule, active: !rule.active }
-        : rule
-    );
-    setAutomationRules(updatedRules);
-    saveRulesToStorage(updatedRules);
+  const toggleRule = async (ruleId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('automations')
+        .update({ is_active: !currentStatus })
+        .eq('id', ruleId);
 
-    toast({
-      title: "Success",
-      description: "Automation rule updated"
-    });
+      if (error) throw error;
+
+      const updatedRules = automationRules.map(rule =>
+        rule.id === ruleId
+          ? { ...rule, active: !rule.active }
+          : rule
+      );
+      setAutomationRules(updatedRules);
+
+      toast({
+        title: "Success",
+        description: "Automation rule updated"
+      });
+    } catch (error) {
+      console.error('Error toggling rule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update rule status",
+        variant: "destructive"
+      });
+    }
   };
 
-  const deleteRule = (ruleId: string) => {
-    const updatedRules = automationRules.filter(rule => rule.id !== ruleId);
-    setAutomationRules(updatedRules);
-    saveRulesToStorage(updatedRules);
-    
-    toast({
-      title: "Success",
-      description: "Automation rule deleted"
-    });
+  const deleteRule = async (ruleId: string) => {
+    try {
+      const { error } = await supabase
+        .from('automations')
+        .delete()
+        .eq('id', ruleId);
+
+      if (error) throw error;
+
+      const updatedRules = automationRules.filter(rule => rule.id !== ruleId);
+      setAutomationRules(updatedRules);
+
+      toast({
+        title: "Success",
+        description: "Automation rule deleted"
+      });
+    } catch (error) {
+      console.error('Error deleting rule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete rule",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleChannelToggle = (channel: string) => {

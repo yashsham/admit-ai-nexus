@@ -38,13 +38,14 @@ import { CampaignAnalytics } from "@/components/CampaignAnalytics";
 import { CampaignAutomation } from "@/components/CampaignAutomation";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { CampaignExecutor } from "@/components/CampaignExecutor";
-import { CollegeCounselingCrew } from "@/components/CollegeCounselingCrew";
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [activeDialog, setActiveDialog] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
   const [showSettings, setShowSettings] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -179,69 +180,69 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                <FileText className="w-5 h-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Campaigns</p>
-                <p className="text-2xl font-bold">{stats.totalCampaigns}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Messages Sent</p>
-                <p className="text-2xl font-bold">{stats.messagesSent}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                <Phone className="w-5 h-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Calls Made</p>
-                <p className="text-2xl font-bold">{stats.callsMade}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-orange-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Response Rate</p>
-                <p className="text-2xl font-bold">{stats.responseRate}%</p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
         {/* Main Content Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-            <TabsTrigger value="ai-crew">AI Crew</TabsTrigger>
+
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="automation">Automation</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Campaigns</p>
+                    <p className="text-2xl font-bold">{stats.totalCampaigns}</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Messages Sent</p>
+                    <p className="text-2xl font-bold">{stats.messagesSent}</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                    <Phone className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Calls Made</p>
+                    <p className="text-2xl font-bold">{stats.callsMade}</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Response Rate</p>
+                    <p className="text-2xl font-bold">{stats.responseRate}%</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column - Recent Campaigns */}
               <div className="lg:col-span-2 space-y-6">
@@ -366,9 +367,7 @@ const Dashboard = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="ai-crew">
-            <CollegeCounselingCrew />
-          </TabsContent>
+
 
           <TabsContent value="analytics">
             <CampaignAnalytics />

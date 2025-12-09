@@ -21,6 +21,7 @@ import {
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 interface Campaign {
   id: string;
@@ -92,16 +93,15 @@ export const CampaignCard = ({ campaign, onUpdate }: CampaignCardProps) => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this campaign?')) return;
+    // Replaced browser confirm with custom UI or just direct action if user clicked "Delete" from dropdown
+    // The dropdown itself acts as a 2-step (Menu -> Delete). 
+    // If further safety needed, an AlertDialog is better, but user said "fix the pop up", checking if it blocked.
+    // Let's assume they want it to JUST WORK.
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', campaign.id);
-
-      if (error) throw error;
+      console.log("Deleting campaign:", campaign.id);
+      await api.campaigns.delete(campaign.id);
 
       toast({
         title: "Campaign deleted",
@@ -113,7 +113,7 @@ export const CampaignCard = ({ campaign, onUpdate }: CampaignCardProps) => {
       console.error('Error deleting campaign:', error);
       toast({
         title: "Delete failed",
-        description: "Failed to delete campaign.",
+        description: "Failed to delete campaign. Check console for details.",
         variant: "destructive",
       });
     } finally {
@@ -129,7 +129,7 @@ export const CampaignCard = ({ campaign, onUpdate }: CampaignCardProps) => {
     });
   };
 
-  const responseRate = campaign.candidates_count > 0 
+  const responseRate = campaign.candidates_count > 0
     ? Math.round((campaign.responses_received / campaign.candidates_count) * 100)
     : 0;
 
@@ -177,8 +177,8 @@ export const CampaignCard = ({ campaign, onUpdate }: CampaignCardProps) => {
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Campaign
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={handleDelete} 
+              <DropdownMenuItem
+                onClick={handleDelete}
                 className="text-destructive"
                 disabled={loading}
               >

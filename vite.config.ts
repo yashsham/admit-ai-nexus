@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  base: mode === 'production' ? "/admit-ai-nexus/" : "/",
+  base: "/",
   plugins: [
     react(),
     mode === 'development' && componentTagger(),

@@ -6,10 +6,18 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Phone, MessageSquare, Mail, Calendar, Users, Wand2 } from 'lucide-react';
+import { Phone, MessageSquare, Mail, Users, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthProvider';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface CampaignCreatorProps {
   onCampaignCreated?: () => void;
@@ -20,10 +28,9 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
     name: '',
     type: '',
     scheduledAt: '',
-    templateWhatsapp: '',
-    templateVoice: '',
   });
-  const [generating, setGenerating] = useState(false);
+  const [aiInstructions, setAiInstructions] = useState('');
+  const [promptOpen, setPromptOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -39,41 +46,6 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
     setCampaignData(prev => ({ ...prev, [field]: value }));
   };
 
-  const generateScript = async (type: 'whatsapp' | 'voice') => {
-    setGenerating(true);
-    try {
-      const prompt = type === 'whatsapp'
-        ? `Generate a professional WhatsApp message template for college admission outreach. The message should be personalized, engaging, and encourage prospective students to learn more about our programs. Include placeholders for student name and course. Keep it under 160 characters.`
-        : `Generate a professional voice call script for college admission outreach. The script should be warm, engaging, and designed to encourage prospective students to learn more about our programs. Include placeholders for student name and course. Keep it conversational and under 100 words.`;
-
-      // Simulate AI generation (replace with actual AI service)
-      const templates = {
-        whatsapp: `Hi {{name}}! 👋 We noticed your interest in {{course}} at our college. We'd love to share how our program can help you achieve your career goals. Reply "YES" for more info! 🎓`,
-        voice: `Hello {{name}}, this is calling from the admissions office. We're excited about your interest in our {{course}} program. I'd love to tell you about our unique opportunities and answer any questions. Do you have a few minutes to chat?`
-      };
-
-      setTimeout(() => {
-        handleInputChange(
-          type === 'whatsapp' ? 'templateWhatsapp' : 'templateVoice',
-          templates[type]
-        );
-        setGenerating(false);
-        toast({
-          title: "Script generated!",
-          description: `${type === 'whatsapp' ? 'WhatsApp' : 'Voice'} template has been generated.`,
-        });
-      }, 2000);
-    } catch (error) {
-      console.error('Error generating script:', error);
-      toast({
-        title: "Generation failed",
-        description: "Failed to generate script. Please try again.",
-        variant: "destructive",
-      });
-      setGenerating(false);
-    }
-  };
-
   const createCampaign = async () => {
     if (!user || !campaignData.name || !campaignData.type) {
       toast({
@@ -84,46 +56,46 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
       return;
     }
 
+    if (!aiInstructions.trim()) {
+      toast({
+        title: "Missing AI Instructions",
+        description: "Please provide instructions for the AI content generator.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCreating(true);
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .insert([
-          {
-            user_id: user.id,
-            name: campaignData.name,
-            type: campaignData.type,
-            template_whatsapp: campaignData.templateWhatsapp || null,
-            template_voice: campaignData.templateVoice || null,
-            scheduled_at: campaignData.scheduledAt ? new Date(campaignData.scheduledAt).toISOString() : null,
-            status: 'draft'
-          }
-        ])
-        .select()
-        .single();
+      // Dynamic import to avoid circular dependencies
+      const { api } = await import('@/lib/api');
 
-      if (error) throw error;
+      const result = await api.campaigns.create(
+        user.id,
+        campaignData.name,
+        aiInstructions
+      );
 
-      toast({
-        title: "Campaign created!",
-        description: "Your campaign has been created successfully.",
-      });
+      if (result.success) {
+        toast({
+          title: "Campaign Initiated!",
+          description: "AI is ready to generate unique content for your candidates.",
+        });
 
-      // Reset form
-      setCampaignData({
-        name: '',
-        type: '',
-        scheduledAt: '',
-        templateWhatsapp: '',
-        templateVoice: '',
-      });
-
-      onCampaignCreated?.();
+        // Reset form
+        setCampaignData({
+          name: '',
+          type: '',
+          scheduledAt: '',
+        });
+        setAiInstructions('');
+        onCampaignCreated?.();
+      }
     } catch (error) {
       console.error('Error creating campaign:', error);
       toast({
         title: "Creation failed",
-        description: "Failed to create campaign. Please try again.",
+        description: "Failed to create campaign. Ensure backend is running.",
         variant: "destructive",
       });
     } finally {
@@ -137,9 +109,9 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
     <Card className="p-6">
       <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-semibold mb-2">Create New Campaign</h3>
+          <h3 className="text-lg font-semibold mb-2">Create Interactive Campaign</h3>
           <p className="text-muted-foreground text-sm">
-            Set up your admission outreach campaign with AI-powered messaging
+            Configure AI to generate unique, personalized content for every candidate at runtime.
           </p>
         </div>
 
@@ -151,13 +123,14 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
               placeholder="e.g., Engineering Fall 2024 Outreach"
               value={campaignData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
+              className="mt-1"
             />
           </div>
 
           <div>
             <Label htmlFor="campaign-type">Campaign Type</Label>
             <Select value={campaignData.type} onValueChange={(value) => handleInputChange('type', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select campaign type" />
               </SelectTrigger>
               <SelectContent>
@@ -176,92 +149,71 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
               </SelectContent>
             </Select>
           </div>
-
-          <div>
-            <Label htmlFor="scheduled-at">Schedule For (Optional)</Label>
-            <Input
-              id="scheduled-at"
-              type="datetime-local"
-              value={campaignData.scheduledAt}
-              onChange={(e) => handleInputChange('scheduledAt', e.target.value)}
-            />
-          </div>
         </div>
 
         {selectedType && (
-          <div className="space-y-4">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <selectedType.icon className="w-3 h-3" />
-                {selectedType.label}
-              </Badge>
+              <Sparkles className="w-4 h-4 text-purple-500" />
+              <h4 className="font-medium">AI Personalization Engine</h4>
             </div>
 
-            {(campaignData.type === 'whatsapp' || campaignData.type === 'both') && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="whatsapp-template">WhatsApp Template</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => generateScript('whatsapp')}
-                    disabled={generating}
-                  >
-                    <Wand2 className="w-4 h-4 mr-1" />
-                    {generating ? 'Generating...' : 'AI Generate'}
-                  </Button>
-                </div>
-                <Textarea
-                  id="whatsapp-template"
-                  placeholder="Enter your WhatsApp message template..."
-                  value={campaignData.templateWhatsapp}
-                  onChange={(e) => handleInputChange('templateWhatsapp', e.target.value)}
-                  rows={3}
-                />
-                <div className="text-xs text-muted-foreground mt-1">
-                  Use {`{{name}}`} for student name, {`{{course}}`} for course name
-                </div>
-              </div>
-            )}
+            <p className="text-sm text-muted-foreground">
+              Instead of a single template, provide instructions. The AI will generate a
+              <strong> unique message for every candidate</strong> based on their city, course, and name.
+            </p>
 
-            {(campaignData.type === 'voice' || campaignData.type === 'both') && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="voice-template">Voice Call Script</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => generateScript('voice')}
-                    disabled={generating}
-                  >
-                    <Wand2 className="w-4 h-4 mr-1" />
-                    {generating ? 'Generating...' : 'AI Generate'}
+            <div className="pt-2">
+              {aiInstructions ? (
+                <div className="bg-muted p-3 rounded-md text-sm italic mb-2 relative group">
+                  "{aiInstructions}"
+                  <Button variant="ghost" size="sm" className="absolute top-1 right-1 h-6 text-xs opacity-0 group-hover:opacity-100" onClick={() => setPromptOpen(true)}>Edit</Button>
+                </div>
+              ) : (
+                <div className="p-3 border border-dashed rounded-md text-sm text-center text-muted-foreground mb-2">
+                  No instructions set.
+                </div>
+              )}
+
+              <Dialog open={promptOpen} onOpenChange={setPromptOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    {aiInstructions ? 'Edit Instructions' : 'Set AI Instructions'}
                   </Button>
-                </div>
-                <Textarea
-                  id="voice-template"
-                  placeholder="Enter your voice call script..."
-                  value={campaignData.templateVoice}
-                  onChange={(e) => handleInputChange('templateVoice', e.target.value)}
-                  rows={4}
-                />
-                <div className="text-xs text-muted-foreground mt-1">
-                  Use {`{{name}}`} for student name, {`{{course}}`} for course name
-                </div>
-              </div>
-            )}
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>AI Instructions</DialogTitle>
+                    <DialogDescription>
+                      Tell the AI how to behave. It will use this prompt to write unique messages for each candidate.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <Label htmlFor="prompt" className="mb-2 block">Prompt</Label>
+                    <Textarea
+                      id="prompt"
+                      placeholder="Example: Be friendly and professional. Ask them about their interest in [Course]. Mention something nice about [City]. Keep it under 150 characters."
+                      className="min-h-[150px]"
+                      value={aiInstructions}
+                      onChange={(e) => setAiInstructions(e.target.value)}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={() => setPromptOpen(false)}>Save Instructions</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         )}
 
         <Button
           onClick={createCampaign}
-          disabled={creating || !campaignData.name || !campaignData.type}
+          disabled={creating || !campaignData.name || !campaignData.type || !aiInstructions}
           className="w-full"
           variant="hero"
         >
-          {creating ? 'Creating...' : 'Create Campaign'}
+          {creating ? 'Initializing AI...' : 'Create Campaign'}
         </Button>
       </div>
     </Card>

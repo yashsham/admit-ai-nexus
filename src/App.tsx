@@ -27,28 +27,22 @@ import ResetPassword from "./pages/ResetPassword";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
-  const [appReady, setAppReady] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
+  const [appReady, setAppReady] = useState(true);
 
   useEffect(() => {
     // Check if we are on the reset password page
     const isResetPassword = window.location.pathname.includes("/reset-password");
 
-    // Check if this is the first load or PWA launch
-    const isFirstLoad = !sessionStorage.getItem("app-loaded");
-    const isPWA = window.matchMedia("(display-mode: standalone)").matches;
-
     if (isResetPassword) {
       // Skip splash screen entirely for reset password to avoid token expiry
       setShowSplash(false);
       setAppReady(true);
-      sessionStorage.setItem("app-loaded", "true");
-    } else if (isFirstLoad || isPWA) {
-      sessionStorage.setItem("app-loaded", "true");
-      setShowSplash(true);
     } else {
-      setShowSplash(false);
-      setAppReady(true);
+      // Force splash screen on every load/reload
+      setShowSplash(true);
+      // Reset app ready state
+      setAppReady(false);
     }
   }, []);
 

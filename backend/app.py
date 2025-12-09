@@ -20,7 +20,9 @@ origins = [
     "http://127.0.0.1:8080",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://localhost:8000"
+    "http://localhost:8000",
+    "https://yashsham.github.io",
+    "https://admit-ai-nexus.onrender.com"
 ]
 
 app.add_middleware(
@@ -30,6 +32,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 from agents.campaign_crew import CampaignCrew
 import services.tools as tools 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -42,26 +45,6 @@ import csv
 import io
 from services.llm_generation import generate_personalized_content
 import time
-
-app = FastAPI(title="Admit AI Nexus Backend", version="2.1.0")
-
-# ... (CORS and other setup remains the same) ...
-# CORS Configuration
-origins = [
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://yashsham.github.io"
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 class CampaignRequest(BaseModel):
     user_id: str

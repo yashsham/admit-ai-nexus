@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
@@ -63,7 +63,7 @@ const App = () => {
               <Toaster />
               <Sonner />
               <AuthProvider>
-                <BrowserRouter basename={import.meta.env.BASE_URL}>
+                <HashRouter>
                   <AuthNavigationHandler />
                   <SkipLinks />
                   <Routes>
@@ -100,7 +100,7 @@ const App = () => {
                   </Routes>
                   <ChatWidget />
                   <PWAInstallPrompt />
-                </BrowserRouter>
+                </HashRouter>
               </AuthProvider>
             </TooltipProvider>
           </ThemeProvider>

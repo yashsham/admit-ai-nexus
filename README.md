@@ -89,4 +89,4 @@ This project is built with:
 - Tailwind CSS
 
 <!-- Triggering rebuild for API keys -->
-<!-- Deployment trigger: 2025-12-10 -->
+<!-- Deployment trigger: 2025-12-10 (Fix VITE_API_URL) -->

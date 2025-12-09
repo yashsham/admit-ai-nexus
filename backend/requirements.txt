@@ -4,7 +4,7 @@ uvicorn>=0.27.0
 crewai==0.28.1
 groq>=0.4.0
 supabase>=2.3.0
-python-dotenv>=1.0.1
+python-dotenv==1.0.0
 pydantic>=2.6.0
 twilio>=8.12.0
 sendgrid>=6.11.0

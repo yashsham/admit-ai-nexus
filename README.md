@@ -65,6 +65,19 @@ Once these are set, any push to `main` will trigger a build and deploy.
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
+## Running the Backend with Docker
+
+To ensure a consistent environment that matches production, you can run the backend using Docker.
+
+1.  Make sure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed.
+2.  Run the following command in the root directory:
+
+    ```sh
+    docker-compose up --build
+    ```
+
+3.  The backend will be available at `http://localhost:8000`.
+
 ## What technologies are used for this project?
 
 This project is built with:

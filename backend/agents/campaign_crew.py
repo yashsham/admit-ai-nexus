@@ -1,12 +1,13 @@
-from crewai import Agent, Task, Crew, Process, LLM
+from crewai import Agent, Task, Crew, Process
+from langchain_groq import ChatGroq
 from config import GROQ_API_KEY
 from typing import Dict, Any
 
 class CampaignCrew:
     def __init__(self, goal: str):
         self.goal = goal
-        self.llm = LLM(
-            model="groq/llama-3.3-70b-versatile",
+        self.llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
             api_key=GROQ_API_KEY
         )
 

@@ -108,6 +108,13 @@ export const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
 
       if (error) throw error;
 
+      // ALSO update the Auth Metadata so the Dashboard (and global auth state) updates immediately
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { full_name: profile.full_name }
+      });
+
+      if (authError) console.error('Error updating auth metadata:', authError);
+
       toast({
         title: "Profile updated",
         description: "Your settings have been saved successfully",

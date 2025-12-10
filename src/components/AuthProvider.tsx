@@ -214,14 +214,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Sign out error:", error);
+      // Continue to clear local state anyway
     }
 
-    // Clear session state
+    // Force clear session state and local storage
     setSession(null);
     setUser(null);
+    localStorage.removeItem('sb-imlbkhgquajmnqgbvgwj-auth-token');
 
     toast({
       title: "Signed out",

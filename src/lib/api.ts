@@ -6,13 +6,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 export const api = {
     campaigns: {
-        create: async (userId: string, name: string, instructions: string) => {
+        create: async (userId: string, name: string, instructions: string, channels: string[] = ["email", "whatsapp"]) => {
             const response = await fetch(`${API_BASE_URL}/campaigns/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ user_id: userId, name: name, goal: instructions }),
+                body: JSON.stringify({ user_id: userId, name: name, goal: instructions, channels: channels }),
             });
 
             if (!response.ok) {

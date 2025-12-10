@@ -182,7 +182,7 @@ const Dashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
 
@@ -277,7 +277,7 @@ const Dashboard = () => {
                     {campaigns.length > 3 && (
                       <Card className="p-4 text-center bg-card/50 backdrop-blur-sm border-border/50">
                         <p className="text-muted-foreground">+{campaigns.length - 3} more campaigns</p>
-                        <Button variant="ghost" size="sm" className="mt-2">View All Campaigns</Button>
+                        <Button variant="ghost" size="sm" className="mt-2" onClick={() => setActiveTab('campaigns')}>View All Campaigns</Button>
                       </Card>
                     )}
                   </div>

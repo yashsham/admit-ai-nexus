@@ -51,6 +51,7 @@ class CampaignRequest(BaseModel):
     goal: str
     name: Optional[str] = None
     profile_data: Optional[Dict[str, Any]] = None
+    channels: Optional[List[str]] = ["email", "whatsapp"]
 
 class ExecutionRequest(BaseModel):
     campaign_id: str
@@ -63,8 +64,8 @@ def run_campaign_execution(campaign_id: str, campaign_data: dict, recipients: li
     """
     Executes a campaign by sending messages to REAL recipients.
     """
-    print(f"🚀 Starting execution for campaign: {campaign_id}")
-    print(f"👥 Target Recipients: {len(recipients)}")
+    print(f"Starting execution for campaign: {campaign_id}")
+    print(f"Target Recipients: {len(recipients)}")
     
     # 1. Update status to RUNNING (using 'active' to match constraints)
     supabase.table("campaigns").update({"status": "active"}).eq("id", campaign_id).execute()
@@ -90,30 +91,81 @@ def run_campaign_execution(campaign_id: str, campaign_data: dict, recipients: li
         
         # --- Runtime Personalization ---
         # If we have an AI Prompt, we generate FRESH content for this person
+        email_subject = "Admit AI Update"
+        
         if ai_prompt:
             # We determine channel primary for generation context
-            primary_channel = "whatsapp" if "whatsapp" in channels else "email"
-            message_content = generate_personalized_content(recipient, ai_prompt, primary_channel)
+            # CRITICAL: Always prioritize email if present to get rich HTML content
+            primary_channel = "email" if "email" in channels else "whatsapp"
+            
+            # 1. Get Verified Link (Dynamic) - For ALL channels
+            verified_link = None
+            query = f"Official website {recipient.get('course', '')} {recipient.get('college', 'Bareilly College')}"
+            verified_link = tools.get_verified_link(query)
+            
+            # 2. Generate Content
+            generated_response = generate_personalized_content(recipient, ai_prompt, primary_channel, verified_link)
+            
+            # Default containers
+            email_msg = generated_response
+            whatsapp_msg = generated_response
+            email_subject = "Admit AI Update"
+
+            # 3. PARSE RESPONSE (New delimited format: SUBJECT: ... BODY: ...)
+            if primary_channel == "email":
+                try:
+                    # Robust parsing of SUBJECT/BODY blocks
+                    if "SUBJECT:" in generated_response and "BODY:" in generated_response:
+                        parts = generated_response.split("BODY:")
+                        subject_section = parts[0]
+                        body_section = parts[1]
+                        
+                        email_subject = subject_section.replace("SUBJECT:", "").strip()
+                        email_msg = body_section.strip()
+                    else:
+                        # Fallback: Treat whole thing as body if format missing
+                        email_msg = generated_response
+                        email_subject = "Information for You"
+                        
+                    # WhatsApp gets Short Fallback
+                    whatsapp_msg = f"{email_subject}. Check your email for details: {verified_link if verified_link else ''}"
+
+                except Exception as e:
+                     print(f"Parsing Error: {e}")
+                     # SMART FALLBACK: Use the user's raw goal/prompt instead of generic "Information for You"
+                     # This ensures if AI fails (401), the user still sends the text they wanted.
+                     email_msg = ai_prompt if len(ai_prompt) > 10 else "Information for You"
+                     email_subject = "Update from Admit AI"
+                     whatsapp_msg = email_msg # Don't truncate too aggressively in fallback
+            else:
+                # WhatsApp primary
+                email_msg = generated_response
+                whatsapp_msg = generated_response
+                email_subject = "Message from Admit AI"
+
             # Small delay to be nice to rate limits (approx 60-100 RPM limit on some tiers)
             time.sleep(0.5) 
         else:
             # Use static template
-            message_content = static_body.replace("{{name}}", recipient.get("name", "Student"))
-            message_content = message_content.replace("{{course}}", recipient.get("course", "our program"))
+            email_msg = static_body.replace("{{name}}", recipient.get("name", "Student"))
+            email_msg = email_msg.replace("{{course}}", recipient.get("course", "our program"))
+            whatsapp_msg = email_msg[:160] # Naive truncation for static
         
         # --- Channel: WhatsApp ---
         if ("whatsapp" in channels or "messaging" in str(channels).lower()) and r_phone:
             try:
-                print(f"  [WhatsApp] Sending to {r_phone}: {message_content[:30]}...")
-                # tools.send_whatsapp_message(r_phone, message_content) 
+                print(f"  [WhatsApp] Sending to {r_phone}: {whatsapp_msg[:30]}...")
+                # Generate Deep Link (replaces Twilio)
+                deep_link = tools.send_whatsapp_message(r_phone, whatsapp_msg) 
+                print(f"  [WhatsApp] Deep Link Generated: {deep_link}")
                 
                 # Log usage
                 supabase.table("campaign_executions").insert({
                     "campaign_id": campaign_id,
                     "channel": "whatsapp",
-                    "status": "delivered",
+                    "status": "delivered", # In this context, 'delivered' means ready to click
                     "recipient": r_phone,
-                    "message_content": message_content
+                    "message_content": whatsapp_msg
                 }).execute()
                 success_count += 1
             except Exception as e:
@@ -123,9 +175,10 @@ def run_campaign_execution(campaign_id: str, campaign_data: dict, recipients: li
         # --- Channel: Email ---
         if "email" in channels and r_email:
             try:
-                print(f"  [Email] Sending to {r_email}")
-                # Use real tool
-                send_status = tools.send_email(r_email, "Admit AI Update", message_content)
+                print(f"  [Email] Sending to {r_email} | Subject: {email_subject}")
+                print(f"  [Email] Body Dump:\n{email_msg}\n-------------------")
+                # Use real tool with dynamic subject and potential HTML
+                send_status = tools.send_email(r_email, email_subject, email_msg, html_content=email_msg)
                 print(f"  [Email] Status: {send_status}")
                 
                 supabase.table("campaign_executions").insert({
@@ -133,7 +186,7 @@ def run_campaign_execution(campaign_id: str, campaign_data: dict, recipients: li
                     "channel": "email",
                     "status": "delivered" if "sent" in send_status or "mock" in send_status else "failed",
                     "recipient": r_email,
-                    "message_content": message_content
+                    "message_content": email_msg
                 }).execute()
                 success_count += 1
             except Exception as e:
@@ -148,7 +201,7 @@ def run_campaign_execution(campaign_id: str, campaign_data: dict, recipients: li
         "responses_received": 0 # Reset or keep
     }).eq("id", campaign_id).execute()
     
-    print(f"✅ Execution Finished. Success: {success_count}, Fail: {fail_count}")
+    print(f"Execution Finished. Success: {success_count}, Fail: {fail_count}")
 
 # ----------------------------------------------------------------
 # Automation Logic
@@ -158,7 +211,7 @@ def check_automations():
     Periodic task to check automation rules and trigger actions.
     Fixes 'automation rule failed' by actually processing rules safely.
     """
-    print("⏰ Checking Automations...")
+    print("Checking Automations...")
     try:
         # 1. Fetch active rules
         # Note: Using 'automations' table as per schema, not 'automation_rules'
@@ -201,12 +254,12 @@ def health_check():
     return {"status": "ok", "service": "Admit AI Backend v2.1", "mode": "Hybrid + Real Candidates"}
 
 @app.post("/api/candidates/upload")
-async def upload_candidates(user_id: str = Form(...), file: UploadFile = File(...)):
+async def upload_candidates(user_id: str = Form(...), campaign_id: Optional[str] = Form(None), file: UploadFile = File(...)):
     """
     Uploads a CSV file of candidates and saves them to Supabase.
     CSV Format: name, email, phone
     """
-    print(f"📂 Uploading candidates for user: {user_id}")
+    print(f"Uploading candidates for user: {user_id} (Campaign: {campaign_id})")
     try:
         content = await file.read()
         # Decode bytes to string
@@ -215,6 +268,10 @@ async def upload_candidates(user_id: str = Form(...), file: UploadFile = File(..
         candidates_to_add = []
         csv_reader = csv.DictReader(io.StringIO(decoded_content))
         
+        tags = ["uploaded"]
+        if campaign_id:
+            tags.append(f"campaign:{campaign_id}")
+
         for row in csv_reader:
             # Normalize keys (strip spaces, lowercase)
             row = {k.strip().lower(): v.strip() for k, v in row.items() if k}
@@ -233,7 +290,7 @@ async def upload_candidates(user_id: str = Form(...), file: UploadFile = File(..
                 "name": row.get(name_key, "") if name_key else "Unknown",
                 "email": row.get(email_key, "") if email_key else "",
                 "phone": row.get(phone_key, "") if phone_key else "",
-                "tags": ["uploaded"] 
+                "tags": tags 
             })
             
         if not candidates_to_add:
@@ -318,7 +375,7 @@ async def contact_endpoint(request: ContactRequest):
     """
     Sends a contact email to the admin.
     """
-    print(f"📩 Contact Request from {request.name} ({request.email})")
+    print(f"Contact Request from {request.name} ({request.email})")
     try:
         # Send email to Admin
         subject = f"Contact Form: {request.name}"
@@ -341,7 +398,7 @@ async def delete_campaign_endpoint(campaign_id: str):
     Deletes a campaign and its associated executions (Cascading Delete).
     IMPORTANT: Also deletes CANDIDATES linked to this campaign via TAGS.
     """
-    print(f"🗑️  Deleting campaign: {campaign_id}")
+    print(f"Deleting campaign: {campaign_id}")
     try:
         # 1. Delete Executions first
         supabase.table("campaign_executions").delete().eq("campaign_id", campaign_id).execute()
@@ -364,9 +421,17 @@ async def delete_campaign_endpoint(campaign_id: str):
 async def create_campaign_endpoint(request: CampaignRequest):
     # ... (Same as before) ...
     try:
-        print(f"🧠 AI Planning started for: {request.goal}")
-        crew = CampaignCrew(request.goal)
-        plan_result = crew.plan_campaign()
+        print(f"AI Planning started for: {request.goal}")
+        plan_result = "AI Plan Unavailable (API Key Issue)"
+        ai_prompt = request.goal
+        
+        try:
+            crew = CampaignCrew(request.goal)
+            plan_result = crew.plan_campaign()
+        except Exception as crew_error:
+            print(f"[Warning] AI Planning Failed (likely API Key): {crew_error}")
+            print("Using fallback plan.")
+            plan_result = f"Fallback Plan: Execute campaign for goal '{request.goal}' using standard templates."
         
         data = {
             "user_id": request.user_id,
@@ -374,11 +439,11 @@ async def create_campaign_endpoint(request: CampaignRequest):
             "goal": request.goal,
             "status": "draft",
             "type": "personalized", 
-            "channels": ["whatsapp"], # Defaulting to WA for now
+            "channels": request.channels or ["email", "whatsapp"], 
             "messages_sent": 0, # Initialize stats
             "metadata": {
                 "ai_plan": str(plan_result),
-                "ai_prompt": request.goal # Use the goal as the execution prompt
+                "ai_prompt": request.goal 
             } 
         }
         res = supabase.table("campaigns").insert(data).execute()
@@ -475,7 +540,7 @@ else:
 dist_path = os.path.join(os.path.dirname(__file__), "../dist")
 
 if os.path.exists(dist_path):
-    print(f"📂 Mounting frontend from: {dist_path}")
+    print(f"Mounting frontend from: {dist_path}")
     # Mount both root assets and project-base assets (to support the existing production build)
     app.mount("/assets", StaticFiles(directory=f"{dist_path}/assets"), name="assets")
     app.mount("/admit-ai-nexus/assets", StaticFiles(directory=f"{dist_path}/assets"), name="assets_project_base")

@@ -17,7 +17,7 @@ class CampaignCrew:
             role='Senior Campaign Strategist',
             goal='Plan high-conversion admission campaigns',
             backstory='Expert in higher education marketing and student recruitment.',
-            verbose=True,
+            verbose=False,
             allow_delegation=False,
             llm=self.llm
         )
@@ -27,7 +27,7 @@ class CampaignCrew:
             role='Content Creator',
             goal='Write compelling copy for emails and whatsapp',
             backstory='Creative copywriter specializing in Gen-Z communication.',
-            verbose=True,
+            verbose=False,
             allow_delegation=False,
             llm=self.llm
         )
@@ -49,8 +49,9 @@ class CampaignCrew:
         crew = Crew(
             agents=[strategist, writer],
             tasks=[task_strategy, task_content],
-            verbose=True,
-            process=Process.sequential
+            verbose=False,
+            process=Process.sequential,
+            manager_llm=self.llm
         )
 
         result = crew.kickoff()

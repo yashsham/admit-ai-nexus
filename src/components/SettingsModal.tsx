@@ -115,6 +115,9 @@ export const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
 
       if (authError) console.error('Error updating auth metadata:', authError);
 
+      // Force session refresh to trigger useAuth updates
+      await supabase.auth.refreshSession();
+
       toast({
         title: "Profile updated",
         description: "Your settings have been saved successfully",

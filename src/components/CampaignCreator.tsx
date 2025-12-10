@@ -37,9 +37,8 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
 
   const campaignTypes = [
     { value: 'whatsapp', label: 'WhatsApp Only', icon: MessageSquare, color: 'bg-green-500' },
-    { value: 'voice', label: 'Voice Only', icon: Phone, color: 'bg-blue-500' },
-    { value: 'both', label: 'Voice + WhatsApp', icon: Users, color: 'bg-purple-500' },
-    { value: 'email', label: 'Email Campaign', icon: Mail, color: 'bg-orange-500' },
+    { value: 'email', label: 'Email Only', icon: Mail, color: 'bg-orange-500' },
+    { value: 'both', label: 'Email + WhatsApp', icon: Users, color: 'bg-purple-500' },
   ];
 
   const handleInputChange = (field: string, value: string) => {
@@ -70,10 +69,17 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
       // Dynamic import to avoid circular dependencies
       const { api } = await import('@/lib/api');
 
+      // Map selection to channels
+      let channels: string[] = [];
+      if (campaignData.type === 'whatsapp') channels = ['whatsapp'];
+      else if (campaignData.type === 'email') channels = ['email'];
+      else if (campaignData.type === 'both') channels = ['email', 'whatsapp'];
+
       const result = await api.campaigns.create(
         user.id,
         campaignData.name,
-        aiInstructions
+        aiInstructions,
+        channels
       );
 
       if (result.success) {

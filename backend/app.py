@@ -546,7 +546,7 @@ else:
 # We check if ../dist exists (relative to backend folder)
 dist_path = os.path.join(os.path.dirname(__file__), "../dist")
 
-if os.path.exists(dist_path):
+
 # Test Endpoint for Email
 @app.get("/api/test-email")
 def test_email_endpoint(email: str):

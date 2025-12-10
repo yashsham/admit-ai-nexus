@@ -170,7 +170,7 @@ export const CampaignExecutor = ({ campaign: initialCampaign, onExecutionComplet
         {/* Execute Button */}
         <Button
           onClick={executeCampaign}
-          disabled={executing || selectedChannels.length === 0}
+          disabled={executing || !executionType}
           className="w-full"
           variant="hero"
         >
@@ -187,10 +187,10 @@ export const CampaignExecutor = ({ campaign: initialCampaign, onExecutionComplet
           )}
         </Button>
 
-        {selectedChannels.length > 0 && (
+        {executionType && (
           <div className="text-sm text-muted-foreground text-center">
-            Will execute: {selectedChannels.join(' → ')}
-            {delayMinutes > 0 && ` with ${delayMinutes}min delay between channels`}
+            Will execute: {executionStrategies.find(s => s.value === executionType)?.label}
+            {delayMinutes > 0 && ` with ${delayMinutes}min delay`}
           </div>
         )}
       </CardContent>

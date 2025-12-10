@@ -149,8 +149,8 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             pass
 
     # SMTP Fallback (Gmail)
-    gmail_user = os.getenv("GMAIL_USER")
-    gmail_password = os.getenv("GMAIL_APP_PASSWORD")
+    gmail_user = os.getenv("GMAIL_USER", "").strip()
+    gmail_password = os.getenv("GMAIL_APP_PASSWORD", "").strip()
     
     if gmail_user and gmail_password:
         try:

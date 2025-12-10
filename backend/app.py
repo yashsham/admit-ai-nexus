@@ -547,6 +547,38 @@ else:
 dist_path = os.path.join(os.path.dirname(__file__), "../dist")
 
 if os.path.exists(dist_path):
+# Test Endpoint for Email
+@app.get("/api/test-email")
+def test_email_endpoint(email: str):
+    """
+    Directly tests email sending configuration.
+    Usage: /api/test-email?email=your@email.com
+    """
+    try:
+        # Check env vars
+        g_user = os.getenv("GMAIL_USER", "").strip()
+        g_pass = os.getenv("GMAIL_APP_PASSWORD", "").strip()
+        
+        status = tools.send_email(
+            to_email=email,
+            subject="Admit AI: Production Test",
+            body=f"If you are reading this, your Render Email Configuration is CORRECT! User: {g_user[:3]}***"
+        )
+        return {
+            "status": "success", 
+            "detail": status, 
+            "env_checks": {
+                "has_gmail_user": bool(g_user),
+                "has_password": bool(g_pass),
+                "user_len": len(g_user),
+                "pass_len": len(g_pass)
+            }
+        }
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
+
+if os.path.exists("dist"):
+    dist_path = "dist"
     print(f"Mounting frontend from: {dist_path}")
     # Mount both root assets and project-base assets (to support the existing production build)
     app.mount("/assets", StaticFiles(directory=f"{dist_path}/assets"), name="assets")

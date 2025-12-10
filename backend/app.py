@@ -418,8 +418,8 @@ async def delete_campaign_endpoint(campaign_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/campaigns/create")
-async def create_campaign_endpoint(request: CampaignRequest):
-    # ... (Same as before) ...
+async def create_campaign_endpoint(request: CampaignRequest, background_tasks: BackgroundTasks):
+    # This endpoint creates the campaign AND automatically starts it based on user expectation.
     try:
         print(f"AI Planning started for: {request.goal}")
         plan_result = "AI Plan Unavailable (API Key Issue)"
@@ -437,7 +437,7 @@ async def create_campaign_endpoint(request: CampaignRequest):
             "user_id": request.user_id,
             "name": request.name or f"{request.goal[:30]}...",
             "goal": request.goal,
-            "status": "draft",
+            "status": "active", # Auto-Active
             "type": "personalized", 
             "channels": request.channels or ["email", "whatsapp"], 
             "messages_sent": 0, # Initialize stats
@@ -447,7 +447,14 @@ async def create_campaign_endpoint(request: CampaignRequest):
             } 
         }
         res = supabase.table("campaigns").insert(data).execute()
-        return {"success": True, "campaign": res.data[0]}
+        campaign_id = res.data[0]['id']
+
+        # CRITICAL: Auto-Execute Logic
+        # Immediately trigger the sending process
+        print(f"Auto-triggering execution for new campaign {campaign_id}")
+        background_tasks.add_task(run_campaign_execution, campaign_id)
+        
+        return {"success": True, "campaign": res.data[0], "message": "Campaign created and execution started."}
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

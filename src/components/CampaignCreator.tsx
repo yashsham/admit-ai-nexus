@@ -36,9 +36,12 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
   const { user } = useAuth();
 
   const campaignTypes = [
-    { value: 'whatsapp', label: 'WhatsApp Only', icon: MessageSquare, color: 'bg-green-500' },
     { value: 'email', label: 'Email Only', icon: Mail, color: 'bg-orange-500' },
-    { value: 'both', label: 'Email + WhatsApp', icon: Users, color: 'bg-purple-500' },
+    { value: 'whatsapp', label: 'WhatsApp Only', icon: MessageSquare, color: 'bg-green-500' },
+    { value: 'voice', label: 'Voice Only', icon: Phone, color: 'bg-blue-500' },
+    { value: 'email_whatsapp', label: 'Email + WhatsApp', icon: Users, color: 'bg-purple-500' },
+    { value: 'voice_whatsapp', label: 'Voice + WhatsApp', icon: Users, color: 'bg-indigo-500' },
+    { value: 'email_voice', label: 'Email + Voice', icon: Users, color: 'bg-pink-500' },
   ];
 
   const handleInputChange = (field: string, value: string) => {
@@ -71,9 +74,14 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
 
       // Map selection to channels
       let channels: string[] = [];
-      if (campaignData.type === 'whatsapp') channels = ['whatsapp'];
-      else if (campaignData.type === 'email') channels = ['email'];
-      else if (campaignData.type === 'both') channels = ['email', 'whatsapp'];
+      const t = campaignData.type;
+
+      if (t === 'email') channels = ['email'];
+      else if (t === 'whatsapp') channels = ['whatsapp'];
+      else if (t === 'voice') channels = ['voice'];
+      else if (t === 'email_whatsapp') channels = ['email', 'whatsapp'];
+      else if (t === 'voice_whatsapp') channels = ['voice', 'whatsapp'];
+      else if (t === 'email_voice') channels = ['email', 'voice'];
 
       const result = await api.campaigns.create(
         user.id,

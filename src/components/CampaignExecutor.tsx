@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox"; // Can remove if unused, but safety
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/components/AuthProvider";
 import {
   Play,
   Mail,
@@ -30,56 +32,74 @@ interface CampaignExecutorProps {
   onExecutionComplete?: () => void;
 }
 
-export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExecutorProps) => {
-  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
+export const CampaignExecutor = ({ campaign: initialCampaign, onExecutionComplete }: CampaignExecutorProps) => {
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(initialCampaign?.id || "");
+  const [executionType, setExecutionType] = useState<string>("");
   const [delayMinutes, setDelayMinutes] = useState(0);
   const [executing, setExecuting] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaign ? [initialCampaign] : []);
   const { toast } = useToast();
+  const { user } = useAuth(); // Assume we have access to user context
 
-  const channels = [
-    { id: 'email', label: 'Email', icon: Mail, color: 'text-blue-500' },
-    { id: 'voice', label: 'Voice Call', icon: Phone, color: 'text-green-500' },
-    { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, color: 'text-emerald-500' }
-  ];
-
-  const handleChannelToggle = (channelId: string) => {
-    setSelectedChannels(prev =>
-      prev.includes(channelId)
-        ? prev.filter(id => id !== channelId)
-        : [...prev, channelId]
-    );
+  // Fetch campaigns if not provided or to populate selector
+  const loadCampaigns = async () => {
+    if (!user) return;
+    const { data } = await supabase.from('campaigns').select('id, name, candidates_count, status').eq('user_id', user.id).order('created_at', { ascending: false });
+    if (data) setCampaigns(data);
   };
 
+  // Load on mount
+  useState(() => { loadCampaigns(); });
+
+  const executionStrategies = [
+    { value: 'email', label: 'Email Only', icon: Mail, color: 'text-orange-500' },
+    { value: 'whatsapp', label: 'WhatsApp Only', icon: MessageSquare, color: 'text-green-500' },
+    { value: 'voice', label: 'Voice Only', icon: Phone, color: 'text-blue-500' },
+    { value: 'email_whatsapp', label: 'Email + WhatsApp', icon: Users, color: 'text-purple-500' },
+    { value: 'voice_whatsapp', label: 'Voice + WhatsApp', icon: Users, color: 'text-indigo-500' },
+    { value: 'email_voice', label: 'Email + Voice', icon: Users, color: 'text-pink-500' },
+  ];
+
   const executeCampaign = async () => {
-    if (selectedChannels.length === 0) {
-      toast({
-        title: "No Channels Selected",
-        description: "Please select at least one communication channel",
-        variant: "destructive"
-      });
+    if (!selectedCampaignId) {
+      toast({ title: "Select a Campaign", variant: "destructive" });
+      return;
+    }
+    if (!executionType) {
+      toast({ title: "Select Execution Strategy", variant: "destructive" });
       return;
     }
 
     setExecuting(true);
     try {
-      // Direct call to Python backend
+      // Map Strategy to Channels
+      let channels: string[] = [];
+      if (executionType === 'email') channels = ['email'];
+      else if (executionType === 'whatsapp') channels = ['whatsapp'];
+      else if (executionType === 'voice') channels = ['voice'];
+      else if (executionType === 'email_whatsapp') channels = ['email', 'whatsapp'];
+      else if (executionType === 'voice_whatsapp') channels = ['voice', 'whatsapp'];
+      else if (executionType === 'email_voice') channels = ['email', 'voice'];
+
       const { api } = await import('@/lib/api');
-      await api.campaigns.execute(campaign.id);
+      // Update the campaign's channels first? Or pass channels to execute? 
+      // api.execute currently takes only ID. It uses the campaign's EXISTING channels.
+      // We should probably update the campaign's channels OR add a 'override_channels' arg to execute.
+      // For now, let's UPDATE the campaign channels before executing to ensure strict adherence.
+
+      await supabase.from('campaigns').update({ channels: channels }).eq('id', selectedCampaignId);
+
+      await api.campaigns.execute(selectedCampaignId);
 
       toast({
-        title: "Campaign Started Successfully",
-        description: `Executing across ${selectedChannels.length} channel(s) with ${delayMinutes}min delay`,
+        title: "Campaign Started",
+        description: `Executing ${executionType} strategy.`,
       });
 
       onExecutionComplete?.();
     } catch (error: any) {
       console.error('Campaign execution error:', error);
-
-      toast({
-        title: "Campaign Execution Failed",
-        description: error.message || "Failed to start execution",
-        variant: "destructive"
-      });
+      toast({ title: "Execution Failed", description: error.message, variant: "destructive" });
     } finally {
       setExecuting(false);
     }
@@ -90,42 +110,38 @@ export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExec
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Zap className="w-5 h-5 text-primary" />
-          Execute Campaign: {campaign.name}
+          Campaign Execution Center
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Campaign Info */}
-        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm">{campaign.candidates_count} candidates</span>
-            </div>
-            <Badge variant="secondary">{campaign.status}</Badge>
-          </div>
+        {/* Campaign Selector */}
+        <div className="space-y-2">
+          <Label>Select Target Campaign</Label>
+          <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+            <SelectTrigger><SelectValue placeholder="Choose a campaign..." /></SelectTrigger>
+            <SelectContent>
+              {campaigns.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name} ({c.candidates_count} candidates)</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Channel Selection */}
+        {/* Strategy Selection (6 Options) */}
         <div className="space-y-3">
-          <Label className="text-base font-medium">Select Communication Channels</Label>
-          <div className="grid grid-cols-1 gap-3">
-            {channels.map((channel) => {
-              const Icon = channel.icon;
-              const isSelected = selectedChannels.includes(channel.id);
-
+          <Label className="text-base font-medium">Select Execution Strategy</Label>
+          <div className="grid grid-cols-2 gap-3">
+            {executionStrategies.map((strategy) => {
+              const Icon = strategy.icon;
+              const isSelected = executionType === strategy.value;
               return (
                 <div
-                  key={channel.id}
-                  className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-all hover-lift ${isSelected ? 'border-primary bg-primary/5' : 'border-border'
-                    }`}
-                  onClick={() => handleChannelToggle(channel.id)}
+                  key={strategy.value}
+                  className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-all hover:bg-accent ${isSelected ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border'}`}
+                  onClick={() => setExecutionType(strategy.value)}
                 >
-                  <Checkbox
-                    checked={isSelected}
-                    onChange={() => handleChannelToggle(channel.id)}
-                  />
-                  <Icon className={`w-5 h-5 ${channel.color}`} />
-                  <Label className="flex-1 cursor-pointer">{channel.label}</Label>
+                  <Icon className={`w-4 h-4 ${strategy.color}`} />
+                  <span className="text-sm font-medium">{strategy.label}</span>
                 </div>
               );
             })}
@@ -135,7 +151,7 @@ export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExec
         {/* Delay Configuration */}
         <div className="space-y-2">
           <Label htmlFor="delay" className="text-base font-medium">
-            Delay Between Channels (minutes)
+            Delay (minutes)
           </Label>
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-muted-foreground" />
@@ -148,7 +164,6 @@ export const CampaignExecutor = ({ campaign, onExecutionComplete }: CampaignExec
               onChange={(e) => setDelayMinutes(parseInt(e.target.value) || 0)}
               className="w-24"
             />
-            <span className="text-sm text-muted-foreground">minutes</span>
           </div>
         </div>
 

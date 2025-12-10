@@ -94,10 +94,14 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
         print(f"Link: {deep_link}") 
         
         # LOCAL AUTO-OPEN WORKAROUND
-        # Since the user is likely running locally, this will pop open WhatsApp Desktop/Web
-        # and prompt them to just hit "Send".
-        print("Auto-Opening WhatsApp on local machine...")
-        webbrowser.open(deep_link)
+        # On deployments (Linux/Render), this would fail or hang.
+        # We only auto-open on Windows (Local Dev).
+        if os.name == 'nt':
+            print("Auto-Opening WhatsApp on local machine...")
+            try:
+                webbrowser.open(deep_link)
+            except:
+                pass
         
         return deep_link
     except Exception as e:

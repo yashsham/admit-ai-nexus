@@ -1,4 +1,4 @@
-import{C as s,S as c,H as i}from"./index-CZFC4Pn4.js";const m="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",p=async t=>{const o=t.slice(0,2e4),a=new s({apiKey:m,model:"llama-3.3-70b-versatile",temperature:0,maxTokens:4096}),n=`
+import{C as s,S as c,H as i}from"./index-BzvzhGoI.js";const m="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",p=async t=>{const o=t.slice(0,2e4),a=new s({apiKey:m,model:"llama-3.3-70b-versatile",temperature:0,maxTokens:4096}),n=`
     You are a data extraction AI. Your job is to extract candidate information from the provided text.
     
     The text may contain names, phone numbers, emails, locations (cities), and course interests.

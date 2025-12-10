@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +49,7 @@ export const CampaignExecutor = ({ campaign: initialCampaign, onExecutionComplet
   };
 
   // Load on mount
-  useState(() => { loadCampaigns(); });
+  useEffect(() => { loadCampaigns(); }, [user]);
 
   const executionStrategies = [
     { value: 'email', label: 'Email Only', icon: Mail, color: 'text-orange-500' },

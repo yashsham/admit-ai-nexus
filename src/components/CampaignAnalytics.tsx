@@ -151,9 +151,62 @@ export const CampaignAnalytics = () => {
     fetchAnalytics();
   }, [selectedCampaignId]); // Re-fetch when selection changes
 
-  const exportReport = () => {
-    // ... (Keep existing export logic)
-    toast({ title: "Export", description: "Exporting data..." });
+  // Subscribe to Realtime Updates
+  useEffect(() => {
+    // Channel for "campaign_executions" insert/update
+    const channel = supabase
+      .channel('analytics-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'campaign_executions' },
+        (payload) => {
+          console.log('Realtime Update:', payload);
+          // Simple approach: re-fetch analytics to get aggregated stats
+          // Optimistic update is harder with aggregated Supabase queries, so we just trigger re-fetch
+          fetchAnalytics();
+          toast({
+            title: "New Activity",
+            description: "Campaign data updated",
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const exportReport = async () => {
+    try {
+      toast({ title: "Generating PDF", description: "Please wait..." });
+      const html2canvas = (await import('html2canvas')).default;
+      const jsPDF = (await import('jspdf')).default;
+
+      // Select the element to capture (e.g. the chart container or whole page)
+      // We will capture a specific ID or document.body implementation
+      // Let's assume we wrap the content in a div with id "analytics-dashboard"
+      const element = document.getElementById('analytics-dashboard');
+      if (!element) throw new Error("Dashboard element not found");
+
+      const canvas = await html2canvas(element, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.setFontSize(16);
+      pdf.text("Admit AI - Campaign Analytics Report", 10, 10);
+      pdf.addImage(imgData, 'PNG', 0, 20, pdfWidth, pdfHeight);
+
+      pdf.save(`analytics_report_${new Date().toISOString().split('T')[0]}.pdf`);
+
+      toast({ title: "Success", description: "Report downloaded!" });
+    } catch (e) {
+      console.error("Export failed", e);
+      toast({ title: "Export Failed", description: "Could not generate PDF", variant: "destructive" });
+    }
   };
 
   // Modern Chart Gradients
@@ -182,7 +235,7 @@ export const CampaignAnalytics = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div id="analytics-dashboard" className="space-y-6">
       {/* Header */}
       <FadeIn>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

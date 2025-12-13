@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // Base URL for the Python backend
-// Base URL for the Python backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const isProd = import.meta.env.PROD;
+const API_BASE_URL = import.meta.env.VITE_API_URL || (isProd ? 'https://admit-ai-backend.onrender.com/api' : 'http://localhost:8000/api');
 
 export const api = {
     campaigns: {

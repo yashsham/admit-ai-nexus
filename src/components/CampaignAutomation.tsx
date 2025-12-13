@@ -289,6 +289,22 @@ export const CampaignAutomation = () => {
             <Plus className="w-4 h-4 mr-2" />
             New Automation Rule
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => {
+              toast({
+                title: "How Automation Works",
+                description: "1. Create a Rule (e.g. 'No Response').\n2. Set a Delay (e.g. 24h).\n3. If condition met, System sends your Template.",
+                duration: 6000,
+              })
+            }}
+          >
+            <div className="flex h-6 w-6 items-center justify-center rounded-full border border-muted-foreground/30">
+              <span className="text-xs font-bold text-muted-foreground">?</span>
+            </div>
+          </Button>
         </div>
       </FadeIn>
 

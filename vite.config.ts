@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   base: "/admit-ai-nexus/",
+  // base: "/", // Commented out for LOCAL PROOF, uncomment for GitHub Pages
   plugins: [
     react(),
     mode === 'development' && componentTagger(),

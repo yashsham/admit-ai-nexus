@@ -176,24 +176,58 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             print(f"SMTP Error: {e}")
             return f"error_smtp_{str(e)}"
 
-    print(f"[MOCK] Email to {to_email} | Subject: {subject} | Body: {final_content[:50]}...")
-    return "mock_success_no_credentials"
+    # If we get here, NO credentials were found
+    print(f"❌ FAILED: No Email Credentials found for {to_email}")
+    return "failed_no_credentials_configured"
 
 # --- Voice Call (Placeholder for Retell / Bland AI) ---
-def make_voice_call(to_number: str, script: str) -> str:
+# --- Voice Call (Retell AI) ---
+def make_voice_call(to_number: str, context_variables: dict = None) -> str:
     """
-    Initiates a voice call. 
-    This is a placeholder for a specific Voice API like Retell AI or Bland AI.
+    Initiates a voice call using Retell AI.
+    Requires RETELL_API_KEY and RETELL_AGENT_ID defined in environment.
     """
-    if not VOICE_API_KEY:
-        print(f"[MOCK] Voice Call to {to_number} | Script: {script[:50]}...")
+    RETELL_API_KEY = os.getenv("RETELL_API_KEY")
+    RETELL_AGENT_ID = os.getenv("RETELL_AGENT_ID")
+    
+    if not RETELL_API_KEY or not RETELL_AGENT_ID:
+        print(f"[MOCK] Voice Call to {to_number} | Context: {context_variables}")
         return "mock_success_no_credentials"
     
-    # Example logic for a generic voice API
     try:
-        # url = "https://api.retellai.com/v1/calls"
-        # ... implementation depends on provider ...
-        print(f"[REAL] Voice Call initiated to {to_number}")
-        return "call_initiated_sid_123"
+        url = "https://api.retellai.com/v2/create-phone-call"
+        headers = {
+            "Authorization": f"Bearer {RETELL_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        # NOTE: Retell requires a 'from_number' if the agent doesn't have one bounded?
+        # Docs say: "from_number": "..."
+        # We will try omitting it if the agent has a number, or use a placeholder to catch error.
+        
+        payload = {
+            "agent_id": RETELL_AGENT_ID,
+            "to_number": to_number,
+            "retell_llm_dynamic_variables": context_variables or {}
+        }
+        
+        # If user hardcoded a number in env?
+        from_num = os.getenv("RETELL_FROM_NUMBER")
+        if from_num:
+            payload["from_number"] = from_num
+
+        print(f"[Retell] Initiating call to {to_number} using Agent {RETELL_AGENT_ID}...")
+        response = requests.post(url, headers=headers, json=payload)
+        
+        if response.status_code == 201 or response.status_code == 200:
+            data = response.json()
+            call_id = data.get("call_id")
+            print(f"[Retell] Success! Call ID: {call_id}")
+            return f"call_initiated_{call_id}"
+        else:
+            print(f"[Retell] Failed: {response.text}")
+            return f"error_retell_{response.status_code}_{response.text}"
+            
     except Exception as e:
+        print(f"[Retell] Exception: {e}")
         return f"error_{str(e)}"

@@ -33,7 +33,7 @@ origins = [
     "https://yashsham.github.io",
     "https://admit-ai-nexus.onrender.com/api",
     "https://admit-ai-nexus.onrender.com",
-    
+    "https://yashsham.github.io/admit-ai-nexus/"
 ]
 
 app.add_middleware(

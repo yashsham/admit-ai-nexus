@@ -31,7 +31,9 @@ origins = [
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "https://yashsham.github.io",
-    "https://admit-ai-nexus.onrender.com"
+    "https://admit-ai-nexus.onrender.com/api",
+    "https://admit-ai-nexus.onrender.com",
+    
 ]
 
 app.add_middleware(

@@ -166,9 +166,9 @@ def run_campaign_execution(campaign_id: str, campaign_data: dict = None, recipie
         fail_count = 0
         
         # --- PARALLEL EXECUTION ENGINE ---
-        # 10 workers ensures we can process 10 emails at once.
-        # This makes SMTP 10x faster effectively.
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        # 20 workers for "Turbo Mode"
+        # This makes SMTP 20x faster effectively.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             # Prepare arguments for each task
             futures = [
                 executor.submit(process_recipient, recipient, campaign_id, channels, campaign_data)

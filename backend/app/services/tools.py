@@ -123,6 +123,8 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
         try:
             print(f"DEBUG: Attempting SMTP (Priority) to {to_email} via {gmail_user} | Subject: {subject}")
             
+            import email.utils
+            
             smtp_host = 'smtp.gmail.com'
             smtp_port = 465  # SSL Port
             
@@ -130,9 +132,14 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             print(f"DEBUG: Connecting directly to {smtp_host}:{smtp_port} (SSL)")
             
             msg = MIMEMultipart()
-            msg['From'] = gmail_user
+            # Friendly Name Format: "Admit AI <email@gmail.com>"
+            msg['From'] = f"Admit AI Nexus <{gmail_user}>"
             msg['To'] = to_email
             msg['Subject'] = subject
+            msg['Date'] = email.utils.formatdate(localtime=True)
+            msg['Message-ID'] = email.utils.make_msgid()
+            msg['X-Mailer'] = "AdmitAI-Mailer/1.0"
+            msg['X-Priority'] = "3" # Normal
             
             if is_html:
                 msg.attach(MIMEText(final_content, 'html'))

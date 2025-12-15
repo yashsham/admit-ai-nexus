@@ -162,7 +162,24 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             else:
                 msg.attach(MIMEText(final_content, 'plain'))
 
-            server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+            # Force IPv4 Resolution to bypass Render IPv6 issues
+            import socket
+            import ssl
+            
+            smtp_host = 'smtp.gmail.com'
+            smtp_port = 465
+            
+            # Resolve to IPv4
+            addr_info = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET, socket.SOCK_STREAM)
+            ip_address = addr_info[0][4][0]
+            print(f"DEBUG: Resolved {smtp_host} to IPv4: {ip_address}")
+
+            # Create insecure SSL context (since we are using IP, hostname check would fail)
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            
+            server = smtplib.SMTP_SSL(ip_address, smtp_port, context=context)
             server.login(gmail_user, gmail_password)
             text = msg.as_string()
             server.sendmail(gmail_user, to_email, text)

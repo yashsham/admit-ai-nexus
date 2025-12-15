@@ -50,6 +50,10 @@ app.add_middleware(
 # API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+@app.get("/")
+async def root():
+    return {"message": "Admit AI Nexus Backend is Running", "docs": "/docs"}
+
 # Static Files (Frontend)
 if os.path.exists("../dist"):
     app.mount("/assets", StaticFiles(directory="../dist/assets"), name="assets")

@@ -1,92 +1,86 @@
-# Welcome to AdmitAI Nexus
+# Admit AI Nexus 🎓
 
-## How can I edit this code?
+**Admit AI Nexus** is an intelligent admission automation platform designed to streamline student recruitment. It combines a modern React frontend with a powerful Python backend driven by AI agents to manage campaigns, personalize communication, and analyze engagement.
 
-There are several ways of editing your application.
+## 🚀 Features
 
-**Use your preferred IDE**
+-   **🤖 AI-Powered Campaigns**: Generates personalized emails and WhatsApp messages using **Llama 3** (via Groq) and **CrewAI**.
+-   **📧 Design-First Communication**: Sends beautiful, HTML-rich emails with context-aware links (e.g., dynamically finding "Scholarship" pages vs "Sports" pages).
+-   **📊 Real-Time Analytics**: Dashboard for tracking delivery rates, engagement, and candidate reach.
+-   **📂 Batch Processing**: Upload thousands of candidates via CSV and process them efficiently.
+-   **🔗 Multi-Channel**: Integrated support for Email (SendGrid/SMTP) and WhatsApp.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in GitHub.
+## 🛠️ Tech Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Frontend
+-   **React** (Vite)
+-   **TypeScript**
+-   **Tailwind CSS** & **Shadcn UI**
+-   **Recharts** for Analytics
 
-Follow these steps:
+### Backend
+-   **FastAPI** (Python)
+-   **Supabase** (Database & Auth)
+-   **CrewAI** & **LangChain** (AI Orchestration)
+-   **Groq API** (LLM)
+-   **Tavily API** (Search & Verification)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🏗️ Architecture
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+This project uses a decoupled architecture:
+1.  **Frontend**: Hosted on **GitHub Pages**. Code is in `src/`.
+2.  **Backend**: Hosted on **Render** as a Web Service. Code is in `backend/`.
+3.  **Database**: Managed **Supabase** instance.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## ⚙️ Local Setup
 
-# Step 4: Configure environment variables.
-cp .env.example .env
-# Edit .env and fill in your API keys
-
-# Step 5: Start the development server with auto-reloading and an instant preview.
+### 1. Frontend
+```bash
+npm install
+cp .env.example .env  # Add your VITE_* keys
 npm run dev
+# Running on http://localhost:5173
 ```
 
-## Deployment
+### 2. Backend
+```bash
+cd backend
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
 
-This project is configured to automatically deploy to GitHub Pages when you push to the `main` or `master` branch.
+pip install -r requirements.txt
+cp .env.example .env  # Add GROQ_API_KEY, SUPABASE_URL, etc.
+python -m uvicorn app.main:app --reload
+# Running on http://localhost:8000
+```
 
-**Important:** You must configure your API keys in GitHub Secrets for the deployment to work.
+## 🌍 Deployment
 
-1.  Go to your GitHub Repository.
-2.  Navigate to **Settings** > **Secrets and variables** > **Actions**.
-3.  Click **New repository secret**.
-4.  Add the following secrets (copy values from your local `.env`):
-    *   `VITE_GROQ_API_KEY`
-    *   `VITE_TAVILY_API_KEY`
-    *   `VITE_LANGCHAIN_TRACING_V2`
-    *   `VITE_LANGCHAIN_API_KEY`
-    *   `VITE_LANGCHAIN_PROJECT`
-    *   `VITE_LANGCHAIN_ENDPOINT`
-    *   `VITE_SUPABASE_URL`
-    *   `VITE_SUPABASE_ANON_KEY`
+### Frontend (GitHub Pages)
+The frontend is automatically deployed via GitHub Actions (`.github/workflows/deploy.yml`).
 
-Once these are set, any push to `main` will trigger a build and deploy.
+**Critical Requirement**:
+You must set the following **Repository Secrets** in GitHub (Settings > Secrets > Actions):
+-   `VITE_API_URL`: `https://admit-ai-nexus.onrender.com/api`
+-   `VITE_GROQ_API_KEY`: Your Groq Key
+-   `VITE_SUPABASE_URL`: Your Supabase URL
+-   `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Key
 
-**Edit a file directly in GitHub**
+### Backend (Render)
+1.  Connect your GitHub repo to **Render**.
+2.  Select **Web Service**.
+3.  **Build Command**: `pip install -r backend/requirements.txt`
+4.  **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+5.  **Root Directory**: `backend`
+6.  **Environment Variables**: Add all backend `.env` variables (GROQ_API_KEY, SMTP credentials, etc.).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📝 Latest Updates
+-   **Fixed**: Email AI Generation crash due to missing dependencies.
+-   **Improved**: Dynamic Link Generation (links are now relevant to the specific Campaign Goal).
+-   **Secure**: CORS configured for Production and Local Development.
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## Running the Backend with Docker
-
-To ensure a consistent environment that matches production, you can run the backend using Docker.
-
-1.  Make sure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed.
-2.  Run the following command in the root directory:
-
-    ```sh
-    docker-compose up --build
-    ```
-
-3.  The backend will be available at `http://localhost:8000`.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-<!-- Triggering rebuild for API keys -->
-<!-- Deployment trigger: 2025-12-10 (Fix VITE_API_URL) -->
+---
+*Built for the Future of Admissions.*

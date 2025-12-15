@@ -141,11 +141,11 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
                 print(f"DEBUG: SendGrid Success: {response.status_code}")
                 return "sent_sendgrid"
             else:
-                print(f"DEBUG: SendGrid Failed: {response.status_code} - {response.text}")
-                return f"error_sendgrid_{response.text}"
+                print(f"DEBUG: SendGrid Failed: {response.status_code} - {response.text}. Continuing to SMTP Fallback.")
+                # Do not return error, proceed to SMTP
+                pass
         except Exception as e:
             print(f"SendGrid Error: {e}")
-            # Fallback to SMTP?
             pass
 
     # SMTP Fallback (Gmail)

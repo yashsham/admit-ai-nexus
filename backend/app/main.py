@@ -34,7 +34,7 @@ origins = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "https://yashsham.github.io",
-    "https://admit-ai-nexus.onrender.com",
+    "https://admit-ai-backend.onrender.com",
     "http://localhost:5173",
     "http://127.0.0.1:5173"
 ]

@@ -64,7 +64,7 @@ The frontend is automatically deployed via GitHub Actions (`.github/workflows/de
 
 **Critical Requirement**:
 You must set the following **Repository Secrets** in GitHub (Settings > Secrets > Actions):
--   `VITE_API_URL`: `https://admit-ai-nexus.onrender.com/api`
+-   `VITE_API_URL`: `https://admit-ai-backend.onrender.com/api`
 -   `VITE_GROQ_API_KEY`: Your Groq Key
 -   `VITE_SUPABASE_URL`: Your Supabase URL
 -   `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Key

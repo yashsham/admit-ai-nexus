@@ -167,7 +167,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             import ssl
             
             smtp_host = 'smtp.gmail.com'
-            smtp_port = 465
+            smtp_port = 587
             
             # Resolve to IPv4
             addr_info = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET, socket.SOCK_STREAM)
@@ -179,7 +179,8 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
             
-            server = smtplib.SMTP_SSL(ip_address, smtp_port, context=context)
+            server = smtplib.SMTP(ip_address, smtp_port)
+            server.starttls(context=context)
             server.login(gmail_user, gmail_password)
             text = msg.as_string()
             server.sendmail(gmail_user, to_email, text)

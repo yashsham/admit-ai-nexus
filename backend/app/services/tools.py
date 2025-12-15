@@ -116,6 +116,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
     is_html = True if html_content or "<html>" in final_content or "<br>" in final_content else False
     
     # Try SendGrid First
+    print(f"DEBUG: Checking SendGrid API Key: {'Found' if settings.SENDGRID_API_KEY else 'Not Found'}")
     if settings.SENDGRID_API_KEY:
         try:
             url = "https://api.sendgrid.com/v3/mail/send"
@@ -137,8 +138,10 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             }
             response = requests.post(url, headers=headers, json=data)
             if response.status_code in [200, 201, 202]:
+                print(f"DEBUG: SendGrid Success: {response.status_code}")
                 return "sent_sendgrid"
             else:
+                print(f"DEBUG: SendGrid Failed: {response.status_code} - {response.text}")
                 return f"error_sendgrid_{response.text}"
         except Exception as e:
             print(f"SendGrid Error: {e}")
@@ -151,6 +154,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
     
     if gmail_user and gmail_password:
         try:
+            print(f"DEBUG: Falling back to SMTP for {to_email}")
             print(f"📧 Attempting SMTP to {to_email} via {gmail_user} | Subject: {subject}")
             msg = MIMEMultipart()
             msg['From'] = gmail_user

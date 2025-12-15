@@ -23,10 +23,17 @@ class ExecutionRequest(BaseModel):
 # --- Core Logic ---
 # --- Core Logic ---
 import logging
+import sys
 
 # Configure File Logging
-logging.basicConfig(filename='campaign_debug.log', level=logging.INFO, 
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("campaign_debug.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
 def run_campaign_execution(campaign_id: str, campaign_data: dict = None, recipients: list = None):
     """

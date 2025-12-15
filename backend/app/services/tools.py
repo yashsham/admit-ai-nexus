@@ -36,74 +36,51 @@ def get_verified_link(query: str) -> str:
     encoded_query = urllib.parse.quote(query.replace("Official website", "").strip())
     return f"https://www.google.com/search?q={encoded_query}"
 
-# --- WhatsApp (Deep Link Generator) ---
-# --- WhatsApp (Cloud API + Deep Link) ---
+# --- WhatsApp (Strict Cloud API) ---
 def send_whatsapp_message(to_number: str, message: str) -> str:
     """
-    Sends message via Official WhatsApp Cloud API if credentials exist.
-    Otherwise, falls back to generating a Click-to-Chat Deep Link.
+    Sends message via Official WhatsApp Cloud API.
+    Strict Backend Implementation (No Deep Links).
     """
-    # Settings loaded globally
-    
-    # 1. Cleaner Phone Number
-    clean_number = to_number.replace("whatsapp:", "").replace("+", "").strip()
-    
-    # Auto-add default country code (91 for India) if missing
-    if len(clean_number) == 10 and clean_number.isdigit():
-        clean_number = "91" + clean_number
-
-    # 2. Try Official Cloud API Logic
-    if settings.WHATSAPP_ACCESS_TOKEN and settings.WHATSAPP_PHONE_NUMBER_ID:
-        try:
-            url = f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
-            headers = {
-                "Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}",
-                "Content-Type": "application/json"
-            }
-            # Note: Free tier text messages are standard. Template messages required for business initiated usually, 
-            # but for this dev stage/reply flow, text often works or user must reply first. 
-            # We assume user is replying or in 24h window, or just using standard text payload.
-            payload = {
-                "messaging_product": "whatsapp",
-                "to": clean_number,
-                "text": {"body": message}
-            }
-            response = requests.post(url, headers=headers, json=payload)
-            
-            if response.status_code in [200, 201]:
-                print(f"[WhatsApp Cloud API] Message sent to {clean_number}")
-                return "sent_cloud_api"
-            else:
-                print(f"[Warn] Cloud API Failed {response.status_code}: {response.text}. Falling back to link.")
-        except Exception as e:
-            print(f"[Warn] Cloud API Error: {e}. Falling back to link.")
-
-    # 3. Fallback: Generate Deep Link (No Cost / No Config)
     try:
-        import urllib.parse
-        import webbrowser
+        # 1. Cleaner Phone Number
+        clean_number = to_number.replace("whatsapp:", "").replace("+", "").strip()
         
-        encoded_message = urllib.parse.quote(message)
-        # Use web.whatsapp.com/send to skip the 'Download' landing page on Desktop
-        deep_link = f"https://web.whatsapp.com/send?phone={clean_number}&text={encoded_message}"
+        # Auto-add default country code (91 for India) if missing
+        if len(clean_number) == 10 and clean_number.isdigit():
+            clean_number = "91" + clean_number
+
+        # 2. Check Credentials
+        if not settings.WHATSAPP_ACCESS_TOKEN or not settings.WHATSAPP_PHONE_NUMBER_ID:
+            print(f"[WhatsApp] FAILURE: Missing Credentials for {clean_number}")
+            return "failed_missing_credentials"
+
+        # 3. Call Cloud API
+        url = f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
+        headers = {
+            "Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}",
+            "Content-Type": "application/json"
+        }
         
-        print(f"[WhatsApp Link Generated] for {clean_number}")
-        print(f"Link: {deep_link}") 
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_number,
+            "text": {"body": message}
+        }
         
-        # LOCAL AUTO-OPEN WORKAROUND
-        # On deployments (Linux/Render), this would fail or hang.
-        # We only auto-open on Windows (Local Dev).
-        if os.name == 'nt':
-            print("Auto-Opening WhatsApp on local machine...")
-            try:
-                webbrowser.open(deep_link)
-            except:
-                pass
+        print(f"[WhatsApp] Sending to {clean_number}...")
+        response = requests.post(url, headers=headers, json=payload)
         
-        return deep_link
+        if response.status_code in [200, 201]:
+            print(f"[WhatsApp] SUCCESS: Message sent to {clean_number}")
+            return "sent_cloud_api"
+        else:
+            print(f"[WhatsApp] API ERROR {response.status_code}: {response.text}")
+            return f"error_api_{response.status_code}"
+
     except Exception as e:
-        print(f"Error generating WhatsApp link: {e}")
-        return f"error_{str(e)}"
+        print(f"[WhatsApp] EXCEPTION: {e}")
+        return f"error_exception_{str(e)}"
 
 # --- Email (SendGrid / SMTP) ---
 def send_email(to_email: str, subject: str, body: str, html_content: str = None) -> str:

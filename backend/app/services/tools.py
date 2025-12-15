@@ -4,20 +4,17 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from twilio.rest import Client
 import requests
-from config import (
-    TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER,
-    SENDGRID_API_KEY, FROM_EMAIL, VOICE_API_KEY, TAVILY_API_KEY
-)
+from app.core.config import settings
 
 # --- Search & Verification ---
 def get_verified_link(query: str) -> str:
     """
     Uses Tavily to find an official verified link for the query.
     """
-    if not TAVILY_API_KEY:
+    if not settings.TAVILY_API_KEY:
         # User requested a functional link fallback immediately.
         # Since we don't have the API key, we redirect to a Google Search for the Official Site.
-        print("[WARN] No TAVILY_API_KEY found. Using Google Search fallback.")
+        print("[WARN] No settings.TAVILY_API_KEY found. Using Google Search fallback.")
         import urllib.parse
         encoded_query = urllib.parse.quote(query.replace("Official website", "").strip())
         return f"https://www.google.com/search?q={encoded_query}"
@@ -26,7 +23,7 @@ def get_verified_link(query: str) -> str:
         response = requests.post(
             "https://api.tavily.com/search",
             json={"query": query, "search_depth": "basic", "max_results": 1},
-            headers={"api_key": TAVILY_API_KEY}
+            headers={"api_key": settings.TAVILY_API_KEY}
         )
         data = response.json()
         if data.get("results"):
@@ -46,7 +43,7 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
     Sends message via Official WhatsApp Cloud API if credentials exist.
     Otherwise, falls back to generating a Click-to-Chat Deep Link.
     """
-    from config import WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID
+    # Settings loaded globally
     
     # 1. Cleaner Phone Number
     clean_number = to_number.replace("whatsapp:", "").replace("+", "").strip()
@@ -56,11 +53,11 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
         clean_number = "91" + clean_number
 
     # 2. Try Official Cloud API Logic
-    if WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID:
+    if settings.WHATSAPP_ACCESS_TOKEN and settings.WHATSAPP_PHONE_NUMBER_ID:
         try:
-            url = f"https://graph.facebook.com/v19.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
+            url = f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
             headers = {
-                "Authorization": f"Bearer {WHATSAPP_ACCESS_TOKEN}",
+                "Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}",
                 "Content-Type": "application/json"
             }
             # Note: Free tier text messages are standard. Template messages required for business initiated usually, 
@@ -119,11 +116,11 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
     is_html = True if html_content or "<html>" in final_content or "<br>" in final_content else False
     
     # Try SendGrid First
-    if SENDGRID_API_KEY:
+    if settings.SENDGRID_API_KEY:
         try:
             url = "https://api.sendgrid.com/v3/mail/send"
             headers = {
-                "Authorization": f"Bearer {SENDGRID_API_KEY}",
+                "Authorization": f"Bearer {settings.SENDGRID_API_KEY}",
                 "Content-Type": "application/json"
             }
             
@@ -134,7 +131,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             
             data = {
                 "personalizations": [{"to": [{"email": to_email}]}],
-                "from": {"email": FROM_EMAIL},
+                "from": {"email": settings.FROM_EMAIL},
                 "subject": subject,
                 "content": [content_obj]
             }
@@ -187,8 +184,8 @@ def make_voice_call(to_number: str, context_variables: dict = None) -> str:
     Initiates a voice call using Retell AI.
     Requires RETELL_API_KEY and RETELL_AGENT_ID defined in environment.
     """
-    RETELL_API_KEY = os.getenv("RETELL_API_KEY")
-    RETELL_AGENT_ID = os.getenv("RETELL_AGENT_ID")
+    RETELL_API_KEY = settings.RETELL_API_KEY
+    RETELL_AGENT_ID = settings.RETELL_AGENT_ID
     
     if not RETELL_API_KEY or not RETELL_AGENT_ID:
         print(f"[MOCK] Voice Call to {to_number} | Context: {context_variables}")
@@ -231,3 +228,7 @@ def make_voice_call(to_number: str, context_variables: dict = None) -> str:
     except Exception as e:
         print(f"[Retell] Exception: {e}")
         return f"error_{str(e)}"
+
+# --- Scheduler ---
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+scheduler = AsyncIOScheduler()

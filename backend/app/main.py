@@ -1,0 +1,70 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
+import uvicorn
+from contextlib import asynccontextmanager
+
+from app.core.config import settings
+from app.api.v1.router import api_router
+from app.services.tools import scheduler
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("--- STARTING ADMIT AI NEXUS BACKEND ---")
+    scheduler.start()
+    yield
+    # Shutdown
+    print("--- SHUTTING DOWN ---")
+    scheduler.shutdown()
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    lifespan=lifespan
+)
+
+# CORS
+origins = [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "https://yashsham.github.io",
+    "https://admit-ai-nexus.onrender.com",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# API Router
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Static Files (Frontend)
+if os.path.exists("../dist"):
+    app.mount("/assets", StaticFiles(directory="../dist/assets"), name="assets")
+    
+    # Catch-all
+    from fastapi.responses import FileResponse
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path.startswith("api"):
+            return {"error": "Not Found"}
+            
+        file_path = os.path.join("../dist", full_path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse("../dist/index.html")
+
+if __name__ == "__main__":
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

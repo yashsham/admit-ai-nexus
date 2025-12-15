@@ -1,6 +1,6 @@
 from crewai import Agent, Task, Crew, Process
 from langchain_groq import ChatGroq
-from config import GROQ_API_KEY
+from app.core.config import settings
 from typing import Dict, Any
 
 class CampaignCrew:
@@ -8,7 +8,7 @@ class CampaignCrew:
         self.goal = goal
         self.llm = ChatGroq(
             model="llama-3.3-70b-versatile",
-            api_key=GROQ_API_KEY
+            api_key=settings.GROQ_API_KEY
         )
 
     def plan_campaign(self) -> Dict[str, Any]:

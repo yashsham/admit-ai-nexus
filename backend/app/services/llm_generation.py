@@ -1,8 +1,5 @@
-import os
+from app.core.config import settings
 from langchain_groq import ChatGroq
-from dotenv import load_dotenv
-
-load_dotenv()
 
 def generate_personalized_content(candidate: dict, prompt: str, channel: str, verified_link: str = None) -> str:
     """
@@ -11,7 +8,7 @@ def generate_personalized_content(candidate: dict, prompt: str, channel: str, ve
     # Lazy Init to ensure Env Vars are loaded
     llm = ChatGroq(
         model="llama-3.3-70b-versatile",
-        api_key=os.getenv("GROQ_API_KEY"),
+        api_key=settings.GROQ_API_KEY,
         temperature=0.9
     )
     

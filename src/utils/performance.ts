@@ -22,12 +22,12 @@ class PerformanceMonitor {
       try {
         const cwvObserver = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
-            this.recordMetric(entry.name, (entry as any).value || entry.startTime);
+            this.recordMetric(entry.name, (entry as unknown as { value?: number }).value || entry.startTime);
           }
         });
-        
-        cwvObserver.observe({ 
-          entryTypes: ['largest-contentful-paint', 'first-input', 'cumulative-layout-shift'] 
+
+        cwvObserver.observe({
+          entryTypes: ['largest-contentful-paint', 'first-input', 'cumulative-layout-shift']
         });
         this.observers.push(cwvObserver);
       } catch (error) {
@@ -44,7 +44,7 @@ class PerformanceMonitor {
             this.recordMetric('first-paint', navEntry.responseEnd - navEntry.requestStart);
           }
         });
-        
+
         navObserver.observe({ entryTypes: ['navigation'] });
         this.observers.push(navObserver);
       } catch (error) {
@@ -59,9 +59,9 @@ class PerformanceMonitor {
       value,
       timestamp: Date.now()
     };
-    
+
     this.metrics.push(metric);
-    
+
     // In production, you might want to send this to an analytics service
     if (process.env.NODE_ENV === 'development') {
       console.log(`Performance metric: ${name} = ${value}`);
@@ -79,7 +79,7 @@ class PerformanceMonitor {
   getAverageMetric(name: string): number {
     const metrics = this.getMetricsByName(name);
     if (metrics.length === 0) return 0;
-    
+
     const sum = metrics.reduce((acc, metric) => acc + metric.value, 0);
     return sum / metrics.length;
   }
@@ -89,7 +89,7 @@ class PerformanceMonitor {
     const start = performance.now();
     const result = fn();
     const end = performance.now();
-    
+
     this.recordMetric(`function-${name}`, end - start);
     return result;
   }
@@ -99,7 +99,7 @@ class PerformanceMonitor {
     const start = performance.now();
     const result = await fn();
     const end = performance.now();
-    
+
     this.recordMetric(`async-function-${name}`, end - start);
     return result;
   }
@@ -121,7 +121,7 @@ export const usePerformanceMonitoring = () => {
   };
 
   const measureAsyncOperation = async <T>(
-    operationName: string, 
+    operationName: string,
     operation: () => Promise<T>
   ): Promise<T> => {
     return performanceMonitor.measureAsyncFunction(operationName, operation);
@@ -141,18 +141,18 @@ export const analyzeBundleSize = async () => {
     try {
       const response = await fetch('/stats.json');
       const stats = await response.json();
-      
+
       console.group('Bundle Analysis');
       console.log('Total bundle size:', formatBytes(stats.assets.reduce((acc: number, asset: any) => acc + asset.size, 0)));
       console.log('Largest assets:');
-      
+
       stats.assets
         .sort((a: any, b: any) => b.size - a.size)
         .slice(0, 10)
         .forEach((asset: any) => {
           console.log(`  ${asset.name}: ${formatBytes(asset.size)}`);
         });
-      
+
       console.groupEnd();
     } catch (error) {
       console.warn('Failed to analyze bundle size:', error);
@@ -163,11 +163,11 @@ export const analyzeBundleSize = async () => {
 // Utility functions
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 

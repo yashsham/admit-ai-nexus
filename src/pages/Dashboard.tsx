@@ -48,41 +48,13 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showSettings, setShowSettings] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState({
     totalCampaigns: 0,
     messagesSent: 0,
     callsMade: 0,
     responseRate: 0
   });
-
-  useEffect(() => {
-    loadDashboardData();
-  }, [user]);
-
-  // Real-time updates for analytics
-  useEffect(() => {
-    const channel = supabase
-      .channel('dashboard-analytics')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'campaign_analytics' },
-        (payload) => {
-          console.log('Real-time analytics update:', payload);
-          toast({
-            title: "New Activity",
-            description: `Agent ${payload.new.channel} reported: ${payload.new.status}`,
-          });
-          // Refresh data to show new stats
-          loadDashboardData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const loadDashboardData = async () => {
     if (!user) return;
@@ -122,6 +94,11 @@ const Dashboard = () => {
       });
     }
   };
+
+  useEffect(() => {
+    loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleSignOut = async () => {
     try {

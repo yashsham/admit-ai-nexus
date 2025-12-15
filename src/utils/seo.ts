@@ -6,7 +6,7 @@ export interface SeoMetrics {
   keywords: string[];
   imageUrl?: string;
   canonicalUrl?: string;
-  structuredData?: Record<string, any>;
+  structuredData?: Record<string, unknown>;
 }
 
 // Generate optimized meta tags
@@ -16,18 +16,18 @@ export const generateMetaTags = (seo: SeoMetrics) => {
     { name: 'keywords', content: seo.keywords.join(', ') },
     { name: 'robots', content: 'index, follow' },
     { name: 'author', content: 'AdmitConnect AI' },
-    
+
     // Open Graph tags
     { property: 'og:title', content: seo.title },
     { property: 'og:description', content: seo.description },
     { property: 'og:type', content: 'website' },
     { property: 'og:site_name', content: 'AdmitConnect AI' },
-    
+
     // Twitter Card tags
     { name: 'twitter:card', content: 'summary_large_image' },
     { name: 'twitter:title', content: seo.title },
     { name: 'twitter:description', content: seo.description },
-    
+
     // Additional meta tags
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
     { name: 'theme-color', content: '#3b82f6' },
@@ -79,7 +79,7 @@ export const structuredDataSchemas = {
       'https://twitter.com/admitconnect'
     ]
   },
-  
+
   softwareApplication: {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -99,7 +99,7 @@ export const structuredDataSchemas = {
       reviewCount: '127'
     }
   },
-  
+
   faq: (questions: Array<{ question: string; answer: string }>) => ({
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -240,7 +240,7 @@ export const trackCoreWebVitals = () => {
       const entries = entryList.getEntries();
       const lastEntry = entries[entries.length - 1];
       vitals.LCP = lastEntry.startTime;
-      
+
       // Log if LCP is poor (> 2.5s)
       if (vitals.LCP > 2500) {
         console.warn('Poor LCP detected:', vitals.LCP);
@@ -254,7 +254,7 @@ export const trackCoreWebVitals = () => {
       entries.forEach(entry => {
         const fidEntry = entry as any;
         vitals.FID = fidEntry.processingStart - fidEntry.startTime;
-        
+
         // Log if FID is poor (> 100ms)
         if (vitals.FID > 100) {
           console.warn('Poor FID detected:', vitals.FID);
@@ -270,7 +270,7 @@ export const trackCoreWebVitals = () => {
         const clsEntry = entry as any;
         if (!clsEntry.hadRecentInput) {
           vitals.CLS += clsEntry.value;
-          
+
           // Log if CLS is poor (> 0.1)
           if (vitals.CLS > 0.1) {
             console.warn('Poor CLS detected:', vitals.CLS);

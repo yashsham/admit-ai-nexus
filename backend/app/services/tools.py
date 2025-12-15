@@ -108,66 +108,18 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
 # --- Email (SendGrid / SMTP) ---
 def send_email(to_email: str, subject: str, body: str, html_content: str = None) -> str:
     """
-    Sends an email using standard SMTP (Gmail SSL) PRIORITY.
-    Falls back to SendGrid if SMTP fails.
+    Sends an email using SendGrid (via Web API) PRIORITY.
+    Falls back to SMTP if SendGrid fails.
     """
     # Use html_content if provided, else use body
     final_content = html_content if html_content else body
     is_html = True if html_content or "<html>" in final_content or "<br>" in final_content else False
 
-    # 1. PRIORITY: SMTP (Gmail)
-    gmail_user = os.getenv("GMAIL_USER", "").strip()
-    gmail_password = os.getenv("GMAIL_APP_PASSWORD", "").strip()
-    
-    if gmail_user and gmail_password:
-        try:
-            print(f"DEBUG: Attempting SMTP (Priority) to {to_email} via {gmail_user} | Subject: {subject}")
-            msg = MIMEMultipart()
-            msg['From'] = gmail_user
-            msg['To'] = to_email
-            msg['Subject'] = subject
-            
-            if is_html:
-                msg.attach(MIMEText(final_content, 'html'))
-            else:
-                msg.attach(MIMEText(final_content, 'plain'))
-
-            # Force IPv4 Resolution to bypass Render IPv6 issues
-            import socket
-            import ssl
-            
-            smtp_host = 'smtp.gmail.com'
-            smtp_port = 465  # SSL Port
-            
-            # Resolve to IPv4
-            addr_info = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET, socket.SOCK_STREAM)
-            ip_address = addr_info[0][4][0]
-            print(f"DEBUG: Resolved {smtp_host} to IPv4: {ip_address}")
-
-            # Create insecure SSL context (since we are using IP, hostname check would fail)
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
-            
-            server = smtplib.SMTP_SSL(ip_address, smtp_port, context=context)
-            server.login(gmail_user, gmail_password)
-            text = msg.as_string()
-            server.sendmail(gmail_user, to_email, text)
-            server.quit()
-            print(f"DEBUG: SMTP Send Success to {to_email}")
-            return "sent_smtp"
-        except Exception as e:
-            print(f"DEBUG: SMTP Failed: {e}. Falling back to SendGrid.")
-            # Fall through to SendGrid
-            pass
-    else:
-        print("DEBUG: No SMTP Credentials found. Trying SendGrid.")
-
-    # 2. FALLBACK: SendGrid
+    # 1. PRIORITY: SendGrid (Fastest)
     print(f"DEBUG: Checking SendGrid API Key: {'Found' if settings.SENDGRID_API_KEY else 'Not Found'}")
     if settings.SENDGRID_API_KEY:
         try:
-            print(f"DEBUG: Attempting SendGrid (Fallback) to {to_email}")
+            print(f"DEBUG: Attempting SendGrid (Priority) to {to_email}")
             url = "https://api.sendgrid.com/v3/mail/send"
             headers = {
                 "Authorization": f"Bearer {settings.SENDGRID_API_KEY}",
@@ -193,11 +145,47 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
                 print(f"DEBUG: SendGrid Success: {response.status_code}")
                 return "sent_sendgrid"
             else:
-                print(f"DEBUG: SendGrid Failed: {response.status_code} - {response.text}")
-                return f"error_sendgrid_{response.text}"
+                print(f"DEBUG: SendGrid Failed: {response.status_code} - {response.text}. Continuing to SMTP Fallback.")
+                # Do not return error, proceed to SMTP
+                pass
         except Exception as e:
             print(f"SendGrid Error: {e}")
-            return f"error_sendgrid_{str(e)}"
+            pass
+
+    # 2. FALLBACK: SMTP (Gmail)
+    gmail_user = os.getenv("GMAIL_USER", "").strip()
+    gmail_password = os.getenv("GMAIL_APP_PASSWORD", "").strip()
+    
+    if gmail_user and gmail_password:
+        try:
+            print(f"DEBUG: Falling back to SMTP for {to_email}")
+            
+            smtp_host = 'smtp.gmail.com'
+            smtp_port = 465  # SSL Port
+            
+            # Simple direct connection relying on system DNS resolution
+            print(f"DEBUG: Connecting directly to {smtp_host}:{smtp_port} (SSL)")
+            
+            msg = MIMEMultipart()
+            msg['From'] = gmail_user
+            msg['To'] = to_email
+            msg['Subject'] = subject
+            
+            if is_html:
+                msg.attach(MIMEText(final_content, 'html'))
+            else:
+                msg.attach(MIMEText(final_content, 'plain'))
+            
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+            server.login(gmail_user, gmail_password)
+            text = msg.as_string()
+            server.sendmail(gmail_user, to_email, text)
+            server.quit()
+            print(f"DEBUG: SMTP Send Success to {to_email}")
+            return "sent_smtp"
+        except Exception as e:
+            print(f"SMTP Error: {e}")
+            return f"error_smtp_{str(e)}"
 
     # If we get here, everything failed
     print(f"❌ FAILED: All email methods failed for {to_email}")

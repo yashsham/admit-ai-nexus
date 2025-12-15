@@ -130,9 +130,12 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
                 "value": final_content
             }
             
+            # Use GMAIL_USER as the "from" address if available, as it's likely the verified identity
+            from_email = settings.GMAIL_USER if settings.GMAIL_USER else settings.FROM_EMAIL
+            
             data = {
                 "personalizations": [{"to": [{"email": to_email}]}],
-                "from": {"email": settings.FROM_EMAIL},
+                "from": {"email": from_email},
                 "subject": subject,
                 "content": [content_obj]
             }
@@ -171,7 +174,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             import ssl
             
             smtp_host = 'smtp.gmail.com'
-            smtp_port = 587
+            smtp_port = 465  # SSL Port
             
             # Resolve to IPv4
             addr_info = socket.getaddrinfo(smtp_host, smtp_port, socket.AF_INET, socket.SOCK_STREAM)
@@ -183,8 +186,8 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
             
-            server = smtplib.SMTP(ip_address, smtp_port)
-            server.starttls(context=context)
+            server = smtplib.SMTP_SSL(ip_address, smtp_port, context=context)
+            # server.starttls(context=context) # Not needed for SSL
             server.login(gmail_user, gmail_password)
             text = msg.as_string()
             server.sendmail(gmail_user, to_email, text)

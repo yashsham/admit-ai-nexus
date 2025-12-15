@@ -74,15 +74,20 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
         if response.status_code in [200, 201]:
             print(f"[WhatsApp] SUCCESS: Message sent to {clean_number}")
             return "sent_cloud_api"
-        else:
             error_data = response.json().get("error", {})
             code = error_data.get("code")
             print(f"[WhatsApp] API ERROR {response.status_code}: {response.text}")
             
-            if code == 133010:
-                print(f"!!! TIP: If using a Test Number, you must ADD '{clean_number}' to the 'To' list in your Meta App Dashboard.")
-                
-            return f"error_api_{response.status_code}"
+            # --- SECRET FALLBACK: Generate Manual Link ---
+            # If the API fails (e.g. Test Number restriction), give the user a link they can click.
+            import urllib.parse
+            encoded_message = urllib.parse.quote(message)
+            deep_link = f"https://wa.me/{clean_number}?text={encoded_message}"
+            
+            print(f"\n[SECRET FALLBACK] Meta rejected the call. Use this link to send manually:")
+            print(f"👉 {deep_link} 👈\n")
+            
+            return f"manual_fallback_link"
 
     except Exception as e:
         print(f"[WhatsApp] EXCEPTION: {e}")

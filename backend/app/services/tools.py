@@ -75,7 +75,13 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
             print(f"[WhatsApp] SUCCESS: Message sent to {clean_number}")
             return "sent_cloud_api"
         else:
+            error_data = response.json().get("error", {})
+            code = error_data.get("code")
             print(f"[WhatsApp] API ERROR {response.status_code}: {response.text}")
+            
+            if code == 133010:
+                print(f"!!! TIP: If using a Test Number, you must ADD '{clean_number}' to the 'To' list in your Meta App Dashboard.")
+                
             return f"error_api_{response.status_code}"
 
     except Exception as e:

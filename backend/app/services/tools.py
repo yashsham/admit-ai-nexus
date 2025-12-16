@@ -36,6 +36,39 @@ def get_verified_link(query: str) -> str:
     encoded_query = urllib.parse.quote(query.replace("Official website", "").strip())
     return f"https://www.google.com/search?q={encoded_query}"
 
+# --- WhatsApp (Twilio Fallback) ---
+def send_whatsapp_twilio(to_number: str, message: str) -> str:
+    """
+    Sends message via Twilio WhatsApp API.
+    Used as fallback when Meta Cloud API fails.
+    """
+    sid = settings.TWILIO_ACCOUNT_SID
+    token = settings.TWILIO_AUTH_TOKEN
+    from_ph = settings.TWILIO_PHONE_NUMBER
+    
+    if not sid or not token or not from_ph:
+        print("[Twilio] Missing Credentials.")
+        return "failed_twilio_no_creds"
+        
+    try:
+        # Twilio requires "whatsapp:" prefix
+        from_wa = f"whatsapp:{from_ph}" if "whatsapp:" not in from_ph else from_ph
+        to_wa = f"whatsapp:{to_number}" if "whatsapp:" not in to_number else to_number
+        
+        client = Client(sid, token)
+        print(f"[Twilio] Sending from {from_wa} to {to_wa}...")
+        
+        msg = client.messages.create(
+            from_=from_wa,
+            body=message,
+            to=to_wa
+        )
+        print(f"[Twilio] Success! SID: {msg.sid}")
+        return f"sent_twilio_{msg.sid}"
+    except Exception as e:
+        print(f"[Twilio] Error: {e}")
+        return f"failed_twilio_{str(e)}"
+
 # --- WhatsApp (Strict Cloud API) ---
 def send_whatsapp_message(to_number: str, message: str) -> str:
     """
@@ -74,12 +107,18 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
         if response.status_code in [200, 201]:
             print(f"[WhatsApp] SUCCESS: Message sent to {clean_number}")
             return "sent_cloud_api"
-            error_data = response.json().get("error", {})
-            code = error_data.get("code")
+        else:
             print(f"[WhatsApp] API ERROR {response.status_code}: {response.text}")
             
+            # --- FALLBACK: Twilio ---
+            if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN:
+                 print("[WhatsApp] Meta Failed. Attempting Twilio Fallback...")
+                 twilio_status = send_whatsapp_twilio(to_number, message)
+                 if "sent" in twilio_status:
+                     return twilio_status
+            
+            error_msg = response.text
             # --- SECRET FALLBACK: Generate Manual Link ---
-            # If the API fails (e.g. Test Number restriction), give the user a link they can click.
             import urllib.parse
             encoded_message = urllib.parse.quote(message)
             deep_link = f"https://wa.me/{clean_number}?text={encoded_message}"
@@ -87,7 +126,7 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
             print(f"\n[SECRET FALLBACK] Meta rejected the call. Use this link to send manually:")
             print(f"👉 {deep_link} 👈\n")
             
-            return f"manual_fallback_link"
+            return f"failed_api_{response.status_code}_{error_msg}"
 
     except Exception as e:
         print(f"[WhatsApp] EXCEPTION: {e}")

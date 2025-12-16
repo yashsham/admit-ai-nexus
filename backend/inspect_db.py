@@ -18,7 +18,14 @@ res = supabase.table("candidates").select("*").order("created_at", desc=True).li
 for c in res.data:
     print(f"Name: {c.get('name')}, Email: '{c.get('email')}', Phone: '{c.get('phone')}', Tags: {c.get('tags')}")
 
-print("\n--- Inspecting Recent Campaigns ---")
-res = supabase.table("campaigns").select("*").order("created_at", desc=True).limit(3).execute()
-for c in res.data:
-    print(f"ID: {c['id']}, Name: {c['name']}, Channels: {c.get('channels')}")
+# Inspect campaign_executions schema
+print("\n--- Recent Campaign Executions ---")
+try:
+    res = supabase.table("campaign_executions").select("*").limit(1).execute()
+    if res.data:
+        print("Columns:", list(res.data[0].keys()))
+        print("Sample Row:", res.data[0])
+    else:
+        print("No executions found.")
+except Exception as e:
+    print(f"Error fetching executions: {e}")

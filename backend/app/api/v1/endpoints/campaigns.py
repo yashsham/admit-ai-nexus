@@ -94,13 +94,19 @@ def process_recipient(recipient: dict, campaign_id: str, channels: list, campaig
         # WhatsApp
         if ("whatsapp" in channels) and r_phone:
             try:
-                tools.send_whatsapp_message(r_phone, whatsapp_msg)
+                wa_status = tools.send_whatsapp_message(r_phone, whatsapp_msg)
+                
+                db_status = "delivered" if "sent" in wa_status else "failed"
                 supabase.table("campaign_executions").insert({
-                    "campaign_id": campaign_id, "channel": "whatsapp", "status": "delivered",
+                    "campaign_id": campaign_id, "channel": "whatsapp", "status": db_status,
                     "recipient": r_phone, "message_content": whatsapp_msg
                 }).execute()
-                logging.info(f"WhatsApp SENT to {r_phone}")
-                success = True
+                
+                if "sent" in wa_status:
+                    logging.info(f"WhatsApp SENT to {r_phone}")
+                    success = True
+                else:
+                    logging.error(f"WhatsApp FAILED to {r_phone}: {wa_status}")
             except Exception as e:
                 logging.error(f"WhatsApp Failed to {r_phone}: {e}")
                 

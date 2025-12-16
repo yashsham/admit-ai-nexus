@@ -15,7 +15,9 @@ import {
   Pie,
   Cell,
   LineChart,
-  Line
+  Line,
+  BarChart,
+  Bar
 } from "recharts";
 import {
   TrendingUp,
@@ -63,6 +65,30 @@ interface CampaignData {
   created_at: string;
 }
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+
+interface ChannelStat {
+  sent: number;
+  failed: number;
+}
+
+interface FailureData {
+  id: string;
+  recipient: string;
+  channel: string;
+  status: string;
+  message_content: string;
+  executed_at: string;
+}
+
 interface AnalyticsData {
   name: string;
   messages: number;
@@ -75,6 +101,8 @@ export const CampaignAnalytics = () => {
   const [metrics, setMetrics] = useState<CampaignMetrics | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
+  const [channelStats, setChannelStats] = useState<Record<string, ChannelStat> | null>(null);
+  const [failures, setFailures] = useState<FailureData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("all");
   const { toast } = useToast();
@@ -117,6 +145,13 @@ export const CampaignAnalytics = () => {
         responsesReceived: 0,
         conversionRate: backendMetrics.overview?.delivery_rate || 0
       });
+
+      if (backendMetrics.channel_stats) {
+        setChannelStats(backendMetrics.channel_stats);
+      }
+      if (backendMetrics.recent_failures) {
+        setFailures(backendMetrics.recent_failures);
+      }
 
       // Prepare analytics chart data
       // If "all", show top campaigns. If "selected", maybe show time-series if available?
@@ -435,6 +470,89 @@ export const CampaignAnalytics = () => {
         </FadeIn>
       </div>
 
+      {/* Channel Breakdown */}
+      {channelStats && (
+        <FadeIn delay={400}>
+          <h3 className="text-lg font-semibold mb-4">Channel Performance</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(Object.entries(channelStats) as [string, ChannelStat][]).map(([channel, stats], idx) => (
+              <Card key={channel} className="hover-lift border-t-4" style={{ borderColor: CHART_COLORS[idx] }}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium capitalize flex justify-between">
+                    {channel}
+                    <Badge variant={stats.failed > 0 ? "destructive" : "outline"}>
+                      {stats.failed > 0 ? `${stats.failed} Failed` : "Healthy"}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[100px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={[
+                        { name: 'Sent', value: stats.sent },
+                        { name: 'Failed', value: stats.failed }
+                      ]}>
+                        <Tooltip cursor={{ fill: 'transparent' }} />
+                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                          {
+                            [{ name: 'Sent', value: stats.sent }, { name: 'Failed', value: stats.failed }].map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={index === 0 ? '#22c55e' : '#ef4444'} />
+                            ))
+                          }
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>Sent: {stats.sent}</span>
+                    <span>Failed: {stats.failed}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </FadeIn>
+      )}
+
+      {/* Failures Table */}
+      {failures.length > 0 && (
+        <FadeIn delay={500}>
+          <Card className="mt-8 border-destructive/20">
+            <CardHeader>
+              <CardTitle className="text-destructive flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Recent Delivery Failures
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Channel</TableHead>
+                    <TableHead>Recipient</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {failures.map((fail) => (
+                    <TableRow key={fail.id}>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(fail.executed_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="capitalize">{fail.channel}</TableCell>
+                      <TableCell className="font-mono text-xs">{fail.recipient}</TableCell>
+                      <TableCell>
+                        <Badge variant="destructive" className="text-[10px]">Failed</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </FadeIn>
+      )}
     </div>
   );
 };

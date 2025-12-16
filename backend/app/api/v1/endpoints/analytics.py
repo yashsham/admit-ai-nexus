@@ -7,26 +7,50 @@ router = APIRouter()
 @router.get("")
 async def get_analytics(campaign_id: Optional[str] = None):
     try:
-        # Get simplified counts
-        # Optimize: Fetch counts directly from DB instead of fetching all rows
+        # Simplify query builder
+        def get_base_query():
+            q = supabase.table("campaign_executions").select("*", count="exact")
+            if campaign_id:
+                q = q.eq("campaign_id", campaign_id)
+            return q
+
+        # 1. Total Messages
+        res_total = get_base_query().limit(0).execute()
+        total_msg = res_total.count or 0
+
+        # 2. Delivered Total
+        res_delivered = get_base_query().eq("status", "delivered").limit(0).execute()
+        delivered = res_delivered.count or 0
+
+        # 3. Channel Stats (Sent vs Failed)
+        channels = ["email", "whatsapp", "voice"]
+        channel_stats = {}
         
-        # 1. Total Messages (Count only)
-        query_total = supabase.table("campaign_executions").select("*", count="exact").limit(0)
-        if campaign_id:
-            query_total = query_total.eq("campaign_id", campaign_id)
-        res_total = query_total.execute()
-        total_msg = res_total.count if res_total.count is not None else 0
+        for ch in channels:
+            # Delivered
+            r_del = get_base_query().eq("channel", ch).eq("status", "delivered").limit(0).execute()
+            # Failed
+            r_fail = get_base_query().eq("channel", ch).eq("status", "failed").limit(0).execute()
+            
+            channel_stats[ch] = {
+                "sent": r_del.count or 0,
+                "failed": r_fail.count or 0
+            }
 
-        # 2. Delivered Messages (Count only)
-        query_delivered = supabase.table("campaign_executions").select("*", count="exact").limit(0).eq("status", "delivered")
+        # 4. Recent Failures (The "Backend" info user asked for)
+        query_failures = supabase.table("campaign_executions")\
+            .select("id, recipient, channel, status, executed_at, message_content")\
+            .eq("status", "failed")\
+            .order("executed_at", desc=True)\
+            .limit(10)
+            
         if campaign_id:
-            query_delivered = query_delivered.eq("campaign_id", campaign_id)
-        res_delivered = query_delivered.execute()
-        delivered = res_delivered.count if res_delivered.count is not None else 0
+            query_failures = query_failures.eq("campaign_id", campaign_id)
+            
+        failures_data = query_failures.execute().data
 
-        # 3. Recent Activity (Fetch only last 5)
-        # created_at might be missing, so we just limit.
-        query_recent = supabase.table("campaign_executions").select("id, status, channel").limit(5)
+        # 5. Recent Activity
+        query_recent = supabase.table("campaign_executions").select("id, status, channel, executed_at").order("executed_at", desc=True).limit(5)
         if campaign_id:
             query_recent = query_recent.eq("campaign_id", campaign_id)
         data_recent = query_recent.execute().data
@@ -35,8 +59,10 @@ async def get_analytics(campaign_id: Optional[str] = None):
             "overview": {
                 "total_sent": total_msg,
                 "delivery_rate": (delivered / total_msg * 100) if total_msg > 0 else 0,
-                "active_campaigns": 3 # Mock/simple logic kept as is
+                "active_campaigns": 3 
             },
+            "channel_stats": channel_stats,
+            "recent_failures": failures_data,
             "recent_activity": data_recent
         }
     except Exception as e:

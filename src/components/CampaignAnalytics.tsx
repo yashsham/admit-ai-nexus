@@ -87,6 +87,7 @@ interface FailureData {
   status: string;
   message_content: string;
   executed_at: string;
+  campaigns?: { name: string };
 }
 
 interface AnalyticsData {
@@ -529,6 +530,7 @@ export const CampaignAnalytics = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Time</TableHead>
+                    <TableHead>Campaign</TableHead>
                     <TableHead>Channel</TableHead>
                     <TableHead>Recipient</TableHead>
                     <TableHead>Status</TableHead>
@@ -539,6 +541,9 @@ export const CampaignAnalytics = () => {
                     <TableRow key={fail.id}>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(fail.executed_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {fail.campaigns?.name || 'Unknown'}
                       </TableCell>
                       <TableCell className="capitalize">{fail.channel}</TableCell>
                       <TableCell className="font-mono text-xs">{fail.recipient}</TableCell>

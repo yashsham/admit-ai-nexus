@@ -39,7 +39,7 @@ async def get_analytics(campaign_id: Optional[str] = None):
 
         # 4. Recent Failures (The "Backend" info user asked for)
         query_failures = supabase.table("campaign_executions")\
-            .select("id, recipient, channel, status, executed_at, message_content")\
+            .select("id, recipient, channel, status, executed_at, message_content, campaigns(name)")\
             .eq("status", "failed")\
             .order("executed_at", desc=True)\
             .limit(10)

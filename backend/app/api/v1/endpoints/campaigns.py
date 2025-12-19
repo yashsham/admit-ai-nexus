@@ -171,26 +171,18 @@ def run_campaign_execution(campaign_id: str, campaign_data: dict = None, recipie
         success_count = 0
         fail_count = 0
         
-        # --- PARALLEL EXECUTION ENGINE ---
-        # 20 workers for "Turbo Mode"
-        # This makes SMTP 20x faster effectively.
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            # Prepare arguments for each task
-            futures = [
-                executor.submit(process_recipient, recipient, campaign_id, channels, campaign_data)
-                for recipient in recipients
-            ]
-            
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    result = future.result()
-                    if result.get("success"):
-                        success_count += 1
-                    else:
-                        fail_count += 1
-                except Exception as e:
-                    logging.error(f"Thread Execution Error: {e}")
-                    fail_count += 1
+        # --- SEQUENTIAL EXECUTION (Fix for LLM Threading Issues) ---
+        # Running sequentially to ensure ChatGroq/Asyncio works correctly.
+        for recipient in recipients:
+             try:
+                 result = process_recipient(recipient, campaign_id, channels, campaign_data)
+                 if result.get("success"):
+                     success_count += 1
+                 else:
+                     fail_count += 1
+             except Exception as e:
+                 logging.error(f"Sequential Execution Error: {e}")
+                 fail_count += 1
         
         supabase.table("campaigns").update({
             "status": "completed", 

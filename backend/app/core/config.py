@@ -19,8 +19,9 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_SERVICE_ROLE_KEY") or ""
     SUPABASE_ANON_KEY: str = os.getenv("VITE_SUPABASE_ANON_KEY", "")
 
-    # LLM (Groq)
+    # LLM (Groq & Gemini)
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY") or os.getenv("VITE_GROQ_API_KEY") or ""
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY") or ""
     
     # Marketing Integrations
     SENDGRID_API_KEY: Optional[str] = os.getenv("SENDGRID_API_KEY")

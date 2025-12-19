@@ -8,3 +8,5 @@ api_router.include_router(campaigns.router, prefix="/campaigns", tags=["campaign
 api_router.include_router(candidates.router, prefix="/candidates", tags=["candidates"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(misc.router, tags=["misc"])
+from app.api.v1.endpoints import chat
+api_router.include_router(chat.router, prefix="/chat", tags=["chat"])

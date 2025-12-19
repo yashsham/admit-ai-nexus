@@ -2,14 +2,12 @@ from crewai import Agent, Task, Crew, Process
 from langchain_groq import ChatGroq
 from app.core.config import settings
 from typing import Dict, Any
+from app.core.llm_factory import get_crewai_llm
 
 class CampaignCrew:
     def __init__(self, goal: str):
         self.goal = goal
-        self.llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
-            api_key=settings.GROQ_API_KEY
-        )
+        self.llm = get_crewai_llm()
 
     def plan_campaign(self) -> Dict[str, Any]:
         # Agent: Campaign Strategist

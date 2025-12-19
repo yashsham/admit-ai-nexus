@@ -110,12 +110,8 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
         else:
             print(f"[WhatsApp] API ERROR {response.status_code}: {response.text}")
             
-            # --- FALLBACK: Twilio ---
-            if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN:
-                 print("[WhatsApp] Meta Failed. Attempting Twilio Fallback...")
-                 twilio_status = send_whatsapp_twilio(to_number, message)
-                 if "sent" in twilio_status:
-                     return twilio_status
+            # Twilio Fallback removed as per user request
+            
             
             error_msg = response.text
             # --- SECRET FALLBACK: Generate Manual Link ---
@@ -124,7 +120,7 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
             deep_link = f"https://wa.me/{clean_number}?text={encoded_message}"
             
             print(f"\n[SECRET FALLBACK] Meta rejected the call. Use this link to send manually:")
-            print(f"👉 {deep_link} 👈\n")
+            print(f" {deep_link} \n")
             
             return f"failed_api_{response.status_code}_{error_msg}"
 

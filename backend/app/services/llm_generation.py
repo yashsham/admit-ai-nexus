@@ -1,16 +1,13 @@
 from app.core.config import settings
-from langchain_groq import ChatGroq
+from app.core.llm_factory import get_llm_with_fallback
 
 def generate_personalized_content(candidate: dict, prompt: str, channel: str, verified_link: str = None) -> str:
     """
     Generates a unique message for a specific candidate based on the user's prompt.
     """
-    # Lazy Init to ensure Env Vars are loaded
-    llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        api_key=settings.GROQ_API_KEY,
-        temperature=0.9
-    )
+    # Lazy Init with Fallback
+    llm = get_llm_with_fallback(temperature=0.9)
+    print(f"DEBUG: Generating content for {candidate.get('name')} via {channel}")
     
     # safe defaults
     name = candidate.get("name", "Student")
@@ -114,6 +111,7 @@ def generate_personalized_content(candidate: dict, prompt: str, channel: str, ve
     try:
         response = llm.invoke(system_instruction)
         content = response.content.strip()
+        print(f"DEBUG: LLM Response ({len(content)} chars): {content[:50]}...")
         
         # Robust cleanup for JSON
         if channel == "email":

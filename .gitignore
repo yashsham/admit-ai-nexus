@@ -28,3 +28,10 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Python
+__pycache__/
+*.pyc
+
+# Vite
+vite.config.ts.timestamp*

@@ -37,7 +37,7 @@ logging.basicConfig(
 
 import concurrent.futures
 
-def process_recipient(recipient: dict, campaign_id: str, channels: list, campaign_data: dict) -> dict:
+async def process_recipient(recipient: dict, campaign_id: str, channels: list, campaign_data: dict) -> dict:
     """
     Helper function to process a single recipient for a campaign.
     Returns a dict with success/failure status.
@@ -65,8 +65,9 @@ def process_recipient(recipient: dict, campaign_id: str, channels: list, campaig
                 # Ensuring we ask for an "Official website" helps.
                 verified_link = tools.get_verified_link(f"Official website {search_query}")
                 logging.info(f"Verified Link Found: {verified_link}")
-                # blocking call is fine for sequential/debug
-                generated_response = generate_personalized_content(recipient, ai_prompt, primary_channel, verified_link)
+                
+                # ASYNC Generation Call
+                generated_response = await generate_personalized_content(recipient, ai_prompt, primary_channel, verified_link)
                     
                 email_msg = generated_response
                 whatsapp_msg = generated_response
@@ -94,6 +95,7 @@ def process_recipient(recipient: dict, campaign_id: str, channels: list, campaig
         # WhatsApp
         if ("whatsapp" in channels) and r_phone:
             try:
+                # TODO: If tools.send_whatsapp_message is slow, wrap in run_in_threadpool
                 wa_status = tools.send_whatsapp_message(r_phone, whatsapp_msg)
                 
                 db_status = "delivered" if "sent" in wa_status else "failed"
@@ -116,7 +118,6 @@ def process_recipient(recipient: dict, campaign_id: str, channels: list, campaig
                 try:
                     logging.info(f"Sending Email to {r_email}...")
                     
-                    # This call is blocking, but now we are inside a ThreadPool
                     status = tools.send_email(r_email, email_subject, email_msg, html_content=email_msg)
                     logging.info(f"Email Status: {status}")
                     
@@ -140,9 +141,9 @@ def process_recipient(recipient: dict, campaign_id: str, channels: list, campaig
         return {"success": False}
 
 
-def run_campaign_execution(campaign_id: str, campaign_data: dict = None, recipients: list = None):
+async def run_campaign_execution(campaign_id: str, campaign_data: dict = None, recipients: list = None):
     """
-    Executes a campaign using PARALLEL THREADS for Speed + Reliability.
+    Executes a campaign using ASYNC/AWAIT.
     """
     try:
         logging.info(f"START: Execution for {campaign_id}")
@@ -171,17 +172,16 @@ def run_campaign_execution(campaign_id: str, campaign_data: dict = None, recipie
         success_count = 0
         fail_count = 0
         
-        # --- SEQUENTIAL EXECUTION (Fix for LLM Threading Issues) ---
-        # Running sequentially to ensure ChatGroq/Asyncio works correctly.
+        # --- ASYNC SEQUENTIAL EXECUTION ---
         for recipient in recipients:
              try:
-                 result = process_recipient(recipient, campaign_id, channels, campaign_data)
+                 result = await process_recipient(recipient, campaign_id, channels, campaign_data)
                  if result.get("success"):
                      success_count += 1
                  else:
                      fail_count += 1
              except Exception as e:
-                 logging.error(f"Sequential Execution Error: {e}")
+                 logging.error(f"Async Execution Error: {e}")
                  fail_count += 1
         
         supabase.table("campaigns").update({
@@ -196,11 +196,14 @@ def run_campaign_execution(campaign_id: str, campaign_data: dict = None, recipie
         logging.critical(f"FATAL CAMPAIGN ERROR: {e}")
         print(f"FATAL ERROR: {e}")
 
-    supabase.table("campaigns").update({
-        "status": "completed", 
-        "updated_at": "now()",
-        "messages_sent": success_count
-    }).eq("id", campaign_id).execute()
+    try:
+        supabase.table("campaigns").update({
+            "status": "completed", 
+            "updated_at": "now()",
+            "messages_sent": success_count
+        }).eq("id", campaign_id).execute()
+    except:
+        pass
 
 
 # --- Endpoints ---

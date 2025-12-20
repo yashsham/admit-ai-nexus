@@ -1,9 +1,10 @@
 from app.core.config import settings
 from app.core.llm_factory import get_llm_with_fallback
 
-def generate_personalized_content(candidate: dict, prompt: str, channel: str, verified_link: str = None) -> str:
+async def generate_personalized_content(candidate: dict, prompt: str, channel: str, verified_link: str = None) -> str:
     """
     Generates a unique message for a specific candidate based on the user's prompt.
+    ASYNC version to support proper event loop usage in FastAPI.
     """
     # Lazy Init with Fallback
     llm = get_llm_with_fallback(temperature=0.9)
@@ -109,7 +110,7 @@ def generate_personalized_content(candidate: dict, prompt: str, channel: str, ve
         """
     
     try:
-        response = llm.invoke(system_instruction)
+        response = await llm.ainvoke(system_instruction)
         content = response.content.strip()
         print(f"DEBUG: LLM Response ({len(content)} chars): {content[:50]}...")
         

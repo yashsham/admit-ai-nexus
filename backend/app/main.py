@@ -13,6 +13,10 @@ from app.services.tools import scheduler
 async def lifespan(app: FastAPI):
     # Startup
     print("--- STARTING ADMIT AI NEXUS BACKEND ---")
+    # Debug: Print all routes
+    for route in app.routes:
+        if hasattr(route, "methods"):
+            print(f"Route: {route.path} [{','.join(route.methods)}]")
     scheduler.start()
     yield
     # Shutdown

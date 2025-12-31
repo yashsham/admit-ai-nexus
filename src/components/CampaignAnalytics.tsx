@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { InterestedCandidatesList } from "./InterestedCandidatesList";
 
 interface CampaignMetrics {
   totalCampaigns: number;
@@ -51,6 +52,7 @@ interface CampaignMetrics {
   callsMade: number;
   responsesReceived: number;
   conversionRate: number;
+  interestedCandidates: number;
 }
 
 interface CampaignData {
@@ -144,7 +146,8 @@ export const CampaignAnalytics = () => {
         messagesSent,
         callsMade: 0,
         responsesReceived: 0,
-        conversionRate: backendMetrics.overview?.delivery_rate || 0
+        conversionRate: backendMetrics.overview?.delivery_rate || 0,
+        interestedCandidates: backendMetrics.overview?.interested_candidates || 0, // New field from backend
       });
 
       if (backendMetrics.channel_stats) {
@@ -322,9 +325,9 @@ export const CampaignAnalytics = () => {
         </div>
       </FadeIn>
 
-      {/* Key Metrics Cards */}
       <FadeIn delay={100}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {/* Row 1: Status & Candidates */}
           <Card className="hover-lift transition-all duration-200 border-t-4 border-t-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -357,6 +360,7 @@ export const CampaignAnalytics = () => {
             </CardContent>
           </Card>
 
+          {/* Row 2: Engagement, Interested, Delivery */}
           <Card className="hover-lift transition-all duration-200 border-t-4 border-t-accent">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Engagement</CardTitle>
@@ -374,6 +378,21 @@ export const CampaignAnalytics = () => {
                   {metrics?.callsMade || 0} Calls
                 </Badge>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover-lift transition-all duration-200 border-t-4 border-t-orange-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Interested Candidates</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {metrics?.interestedCandidates || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Leads classified as 'Interested'
+              </p>
             </CardContent>
           </Card>
 
@@ -558,6 +577,13 @@ export const CampaignAnalytics = () => {
           </Card>
         </FadeIn>
       )}
+
+      {/* Interested Candidates List (New) */}
+      <FadeIn delay={600}>
+        <div className="mt-8">
+          <InterestedCandidatesList />
+        </div>
+      </FadeIn>
     </div>
   );
 };

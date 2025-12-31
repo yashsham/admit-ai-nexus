@@ -1,22 +1,33 @@
 import os
 from dotenv import load_dotenv
 
-# Load from current directory
-load_dotenv()
+# Force reload
+load_dotenv(override=True)
 
-print("--- Environment Introspection ---")
-print(f"Current Working Directory: {os.getcwd()}")
-print(f".env file exists: {os.path.exists('.env')}")
+print("--- ENV DEBUG ---")
+sid = os.getenv("TWILIO_ACCOUNT_SID")
+token = os.getenv("TWILIO_AUTH_TOKEN")
+phone = os.getenv("TWILIO_PHONE_NUMBER")
 
-keys_to_check = [
-    "SUPABASE_URL", "VITE_SUPABASE_URL",
-    "SUPABASE_SERVICE_ROLE_KEY", "VITE_SUPABASE_SERVICE_ROLE_KEY", "VITE_SUPABASE_ANON_KEY",
-    "GROQ_API_KEY", "VITE_GROQ_API_KEY"
-]
+print(f"SID: '{sid}'" if sid else "SID: None")
+print(f"TOKEN: '{token[:4]}...'" if token else "TOKEN: None")
+print(f"PHONE: '{phone}'" if phone else "PHONE: None")
 
-for key in keys_to_check:
-    value = os.getenv(key)
-    status = "FOUND" if value else "MISSING"
-    print(f"{key}: {status}")
+with open(".env", "r") as f:
+    print(f"\n--- CHECKING backend/.env ---")
+    vals = f.read()
+    if "TWILIO_PHONE_NUMBER" in vals:
+         print("FOUND in backend/.env")
+    else:
+         print("NOT FOUND in backend/.env")
 
-print("--------------------------------")
+try:
+    with open("../.env", "r") as f:
+        print(f"\n--- CHECKING root .env ---")
+        vals = f.read()
+        if "TWILIO_PHONE_NUMBER" in vals:
+             print("FOUND in root .env")
+        else:
+             print("NOT FOUND in root .env")
+except FileNotFoundError:
+    print("Root .env not found")

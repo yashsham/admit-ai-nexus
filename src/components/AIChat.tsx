@@ -22,10 +22,12 @@ interface AIChatProps {
   sessionId?: string;
   onNewSession?: (sessionId: string) => void;
   campaigns?: any[];
+  automations?: any[];
   stats?: any;
+  onUpgrade?: () => void;
 }
 
-export const AIChat = ({ sessionId, onNewSession, campaigns, stats }: AIChatProps) => {
+export const AIChat = ({ sessionId, onNewSession, campaigns, automations, stats, onUpgrade }: AIChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -128,13 +130,20 @@ export const AIChat = ({ sessionId, onNewSession, campaigns, stats }: AIChatProp
         content: msg.content
       }));
 
-      // Pass dashboard context (campaigns and stats) to the chat service
+      // Pass dashboard context (campaigns, automations, and stats) to the chat service
       const dashboardContext = {
         campaigns,
+        automations,
         stats
       };
 
-      const response = await chatService.current.generateResponse(userMessage, conversationHistory, dashboardContext);
+      const response = await chatService.current.generateResponse(
+        userMessage,
+        conversationHistory,
+        dashboardContext,
+        undefined,
+        user?.id
+      );
       return response.content;
     } catch (error) {
       console.error('Error calling AI chat:', error);
@@ -178,27 +187,65 @@ export const AIChat = ({ sessionId, onNewSession, campaigns, stats }: AIChatProp
     setMessages(prev => [...prev, newUserMessage]);
     await saveMessage(activeSessionId, 'user', userMessage);
 
-    try {
-      // Generate AI response
-      const aiResponse = await generateAIResponse(userMessage);
+    // Create placeholder for AI response
+    const aiMsgId = `ai-${Date.now()}`;
+    const newAIMessage: Message = {
+      id: aiMsgId,
+      role: 'assistant',
+      content: '', // Start empty
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, newAIMessage]);
 
-      const aiMsgId = `ai-${Date.now()}`;
-      const newAIMessage: Message = {
-        id: aiMsgId,
-        role: 'assistant',
-        content: aiResponse,
-        timestamp: new Date()
+    try {
+      // Pass dashboard context (campaigns, automations, and stats) to the chat service
+      const dashboardContext = {
+        campaigns,
+        automations,
+        stats
       };
 
-      setMessages(prev => [...prev, newAIMessage]);
-      await saveMessage(activeSessionId, 'assistant', aiResponse);
-    } catch (error) {
+      // Stream Response
+      let accumulatedContent = "";
+
+      await chatService.current.generateResponse(
+        userMessage,
+        messages.map(m => ({ role: m.role, content: m.content })),
+        dashboardContext,
+        (token) => {
+          accumulatedContent += token;
+          setMessages(prev => prev.map(msg =>
+            msg.id === aiMsgId ? { ...msg, content: accumulatedContent } : msg
+          ));
+        },
+        user?.id
+      );
+
+      // Save final message
+      await saveMessage(activeSessionId, 'assistant', accumulatedContent);
+
+    } catch (error: any) {
       console.error('Error generating AI response:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate response. Please try again.",
-        variant: "destructive",
-      });
+
+      // Check for Usage Limit (403)
+      if (error.message && error.message.includes("403")) {
+        toast({
+          title: "Usage Limit Reached",
+          description: "You have reached your free usage limit. Please upgrade.",
+          variant: "destructive",
+        });
+        const lockMessage = "\n\n🔒 **Usage Limit Reached**. Please [subscribe](/upgrade) to continue.";
+        setMessages(prev => prev.map(msg =>
+          msg.id === aiMsgId ? { ...msg, content: msg.content + lockMessage } : msg
+        ));
+        if (onUpgrade) onUpgrade();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to generate response. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }

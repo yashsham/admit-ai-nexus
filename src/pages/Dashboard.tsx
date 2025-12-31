@@ -49,6 +49,7 @@ const Dashboard = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [campaigns, setCampaigns] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [automations, setAutomations] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalCampaigns: 0,
     messagesSent: 0,
@@ -70,6 +71,14 @@ const Dashboard = () => {
       if (campaignsError) throw campaignsError;
 
       setCampaigns(campaignsData || []);
+
+      // Load automations (New Agentic Context)
+      const { data: autoData } = await supabase
+        .from('automation_rules')
+        .select('*')
+        .eq('user_id', user.id);
+
+      setAutomations(autoData || []);
 
       // Calculate stats
       const totalCampaigns = campaignsData?.length || 0;
@@ -263,7 +272,12 @@ const Dashboard = () => {
 
               {/* Right Column - AI Chat & Quick Actions */}
               <div className="space-y-6">
-                <AIChat campaigns={campaigns} stats={stats} />
+                <AIChat
+                  campaigns={campaigns}
+                  automations={automations}
+                  stats={stats}
+                  onUpgrade={() => setShowPayment(true)}
+                />
 
                 <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">

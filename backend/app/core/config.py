@@ -3,7 +3,10 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 from dotenv import load_dotenv
 
-load_dotenv()
+from pathlib import Path
+env_path = Path(__file__).resolve().parent.parent.parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+load_dotenv() # Fallback to local .env if any
 
 class Settings(BaseSettings):
     # App
@@ -16,7 +19,7 @@ class Settings(BaseSettings):
     
     # Database (Supabase)
     SUPABASE_URL: str = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL") or ""
-    SUPABASE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_SERVICE_ROLE_KEY") or ""
+    SUPABASE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY") or ""
     SUPABASE_ANON_KEY: str = os.getenv("VITE_SUPABASE_ANON_KEY", "")
 
     # LLM (Groq & Gemini)
@@ -29,6 +32,8 @@ class Settings(BaseSettings):
     
     TWILIO_ACCOUNT_SID: Optional[str] = os.getenv("TWILIO_ACCOUNT_SID")
     TWILIO_AUTH_TOKEN: Optional[str] = os.getenv("TWILIO_AUTH_TOKEN")
+    TWILIO_API_KEY_SID: Optional[str] = os.getenv("TWILIO_API_KEY_SID")
+    TWILIO_API_KEY_SECRET: Optional[str] = os.getenv("TWILIO_API_KEY_SECRET")
     TWILIO_PHONE_NUMBER: Optional[str] = os.getenv("TWILIO_PHONE_NUMBER")
     
     WHATSAPP_ACCESS_TOKEN: Optional[str] = os.getenv("WHATSAPP_ACCESS_TOKEN")
@@ -38,6 +43,9 @@ class Settings(BaseSettings):
     RETELL_AGENT_ID: Optional[str] = os.getenv("RETELL_AGENT_ID")
     
     TAVILY_API_KEY: Optional[str] = os.getenv("TAVILY_API_KEY")
+    SERPER_API_KEY: Optional[str] = os.getenv("SERPER_API_KEY")
+    HUGGINGFACE_API_KEY: Optional[str] = os.getenv("HUGGINGFACE_API_KEY")
+    OPENROUTER_API_KEY: Optional[str] = os.getenv("OPENROUTER_API_KEY")
 
     # Email (Internal Logic)
     GMAIL_USER: Optional[str] = os.getenv("GMAIL_USER")

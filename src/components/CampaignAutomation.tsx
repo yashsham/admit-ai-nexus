@@ -308,6 +308,27 @@ export const CampaignAutomation = () => {
         </div>
       </FadeIn>
 
+      {/* Guide / How-to Section */}
+      <FadeIn delay={50}>
+        <Card className="bg-primary/5 border-primary/20 mb-6">
+          <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-center">
+            <div className="bg-primary/10 p-3 rounded-full">
+              <Zap className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg">New to Automation?</h3>
+              <p className="text-sm text-muted-foreground">
+                Create rules to automatically follow up with candidates. For example, set a
+                <strong> "No Response"</strong> trigger with a <strong>24-hour delay</strong> to send a gentle nudge via WhatsApp if a candidate hasn't replied to your campaign message.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowNewRule(true)}>
+              Try it now
+            </Button>
+          </CardContent>
+        </Card>
+      </FadeIn>
+
       {/* Stats Cards */}
       <FadeIn delay={100}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

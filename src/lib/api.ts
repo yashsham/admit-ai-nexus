@@ -96,8 +96,20 @@ export const api = {
                 ? `${API_BASE_URL}/analytics?campaign_id=${campaignId}`
                 : `${API_BASE_URL}/analytics`;
 
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch analytics');
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            const headers: HeadersInit = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, { headers });
+
+            if (!response.ok) {
+                console.error("Analytics Fetch Error", response.status, response.statusText);
+                throw new Error('Failed to fetch analytics');
+            }
             return response.json();
         }
     },

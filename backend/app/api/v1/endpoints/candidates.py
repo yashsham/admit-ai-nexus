@@ -16,44 +16,70 @@ class CandidateBatchRequest(BaseModel):
 async def upload_candidates(user_id: str = Form(...), campaign_id: Optional[str] = Form(None), file: UploadFile = File(...)):
     print(f"Uploading candidates for user: {user_id} (Campaign: {campaign_id})")
     try:
-        content = await file.read()
-        decoded_content = content.decode('utf-8')
+        # Optimization: Stream Processing (O(1) Memory)
+        import codecs
+        stream_reader = codecs.getreader("utf-8")(file.file)
+        csv_reader = csv.reader(stream_reader)
+        
+        # Read header row
+        try:
+            headers = next(csv_reader)
+        except StopIteration:
+            return {"message": "Empty CSV file"}
+            
+        # Optimization: Pre-compute Header Map (O(K) Time)
+        headers_lower = [h.strip().lower() for h in headers]
+        header_map = {} # Mapping of standard keys to index
+        
+        # Find indices once
+        for idx, col in enumerate(headers_lower):
+            if col in ['name', 'student name', 'full name']:
+                header_map['name'] = idx
+            elif col in ['email', 'email address']:
+                header_map['email'] = idx
+            elif col in ['phone', 'mobile']:
+                header_map['phone'] = idx
         
         candidates_to_add = []
-        csv_reader = csv.DictReader(io.StringIO(decoded_content))
-        
         tags = ["uploaded"]
         if campaign_id:
             tags.append(f"campaign:{campaign_id}")
+            
+        BATCH_SIZE = 1000
+        total_count = 0
 
+        # Process rows (O(N) Time)
         for row in csv_reader:
-            row = {k.strip().lower(): v.strip() for k, v in row.items() if k}
+            if not row: continue
             
-            name_key = next((k for k in row.keys() if k in ['name', 'student name', 'full name']), None)
-            email_key = next((k for k in row.keys() if k in ['email', 'email address']), None)
-            phone_key = next((k for k in row.keys() if k in ['phone', 'mobile']), None)
+            # Direct index access (O(1) Time)
+            name = row[header_map['name']] if 'name' in header_map and len(row) > header_map['name'] else "Unknown"
+            email = row[header_map['email']] if 'email' in header_map and len(row) > header_map['email'] else ""
+            phone = row[header_map['phone']] if 'phone' in header_map and len(row) > header_map['phone'] else ""
             
-            if not email_key and not phone_key:
+            if not email and not phone:
                 continue
 
             candidates_to_add.append({
                 "user_id": user_id,
-                "name": row.get(name_key, "") if name_key else "Unknown",
-                "email": row.get(email_key, "") if email_key else "",
-                "phone": row.get(phone_key, "") if phone_key else "",
+                "name": name,
+                "email": email,
+                "phone": phone,
                 "tags": tags 
             })
             
-        if not candidates_to_add:
-            return {"message": "No valid candidates found in CSV"}
+            # Chunked Inserts logic within loop to keep memory low
+            if len(candidates_to_add) >= BATCH_SIZE:
+                supabase.table("candidates").insert(candidates_to_add).execute()
+                total_count += len(candidates_to_add)
+                candidates_to_add = [] # Clear buffer
 
-        # Optimize: Chunked Inserts (Batch size 1000)
-        BATCH_SIZE = 1000
-        for i in range(0, len(candidates_to_add), BATCH_SIZE):
-            chunk = candidates_to_add[i : i + BATCH_SIZE]
-            supabase.table("candidates").insert(chunk).execute()
+        # Insert remaining
+        if candidates_to_add:
+            supabase.table("candidates").insert(candidates_to_add).execute()
+            total_count += len(candidates_to_add)
         
-        return {"success": True, "count": len(candidates_to_add), "message": "Candidates uploaded successfully"}
+        return {"success": True, "count": total_count, "message": "Candidates uploaded successfully"}
 
     except Exception as e:
         print(f"Upload Error: {e}")

@@ -10,3 +10,6 @@ api_router.include_router(analytics.router, prefix="/analytics", tags=["analytic
 api_router.include_router(misc.router, tags=["misc"])
 from app.api.v1.endpoints import chat
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
+
+from app.api.v1.endpoints import inbound_webhook
+api_router.include_router(inbound_webhook.router, tags=["webhooks"])

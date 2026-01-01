@@ -19,4 +19,4 @@ EXPOSE ${PORT}
 
 # Run the application
 # We use shell form to ensure environment variables like $PORT are expanded correctly
-CMD uvicorn app:app --host 0.0.0.0 --port ${PORT}
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}

@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.core.limiter import limiter
 import os
 import uvicorn
 from contextlib import asynccontextmanager
@@ -29,6 +32,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Rate Limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # CORS
 origins = [
     "http://localhost:8080",
@@ -50,6 +57,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from app.core.middleware import MultiTenancyMiddleware
+app.add_middleware(MultiTenancyMiddleware)
 
 # API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)

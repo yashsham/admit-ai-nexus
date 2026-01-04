@@ -208,6 +208,10 @@ export const AIChat = ({ sessionId, onNewSession, campaigns, automations, stats,
       // Stream Response
       let accumulatedContent = "";
 
+      // Get current session token for Auth
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       await chatService.current.generateResponse(
         userMessage,
         messages.map(m => ({ role: m.role, content: m.content })),
@@ -218,7 +222,8 @@ export const AIChat = ({ sessionId, onNewSession, campaigns, automations, stats,
             msg.id === aiMsgId ? { ...msg, content: accumulatedContent } : msg
           ));
         },
-        user?.id
+        user?.id,
+        token
       );
 
       // Save final message

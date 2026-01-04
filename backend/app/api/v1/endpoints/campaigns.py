@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import traceback
@@ -205,9 +205,14 @@ async def run_campaign_execution(campaign_id: str, campaign_data: dict = None, r
 
 # --- Endpoints ---
 
+from app.services.auth.dependencies import get_current_user, User
+from app.core.usage import verify_usage_limit
+
 @router.post("/create")
-async def create_campaign_endpoint(request: CampaignRequest, background_tasks: BackgroundTasks):
+async def create_campaign_endpoint(request: CampaignRequest, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user)):
     try:
+        # Override user_id from token for security
+        request.user_id = current_user.id
         try:
             crew = CampaignCrew(request.goal)
             plan_result = crew.plan_campaign()
@@ -234,18 +239,23 @@ async def create_campaign_endpoint(request: CampaignRequest, background_tasks: B
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-from app.core.usage import verify_usage_limit
-from fastapi import Depends
+from app.services.event_queue import event_queue
 
 @router.post("/execute")
-async def execute_campaign_endpoint(request: ExecutionRequest, background_tasks: BackgroundTasks, usage_allowed: bool = Depends(verify_usage_limit)):
+async def execute_campaign_endpoint(request: ExecutionRequest, background_tasks: BackgroundTasks, usage_allowed: bool = Depends(verify_usage_limit), current_user: User = Depends(get_current_user)):
     try:
         res = supabase.table("campaigns").select("*").eq("id", request.campaign_id).single().execute()
         if not res.data:
             raise HTTPException(status_code=404, detail="Campaign not found")
         
-        background_tasks.add_task(run_campaign_execution, request.campaign_id)
-        return {"success": True, "message": "Execution started."}
+        # Publish to Redis Queue
+        await event_queue.publish("campaign_events", {
+            "type": "execute_campaign",
+            "campaign_id": request.campaign_id,
+            "user_id": current_user.id
+        })
+        
+        return {"success": True, "message": "Campaign queued for execution."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

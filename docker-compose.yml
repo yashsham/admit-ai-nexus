@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: admit-ai-backend
@@ -14,3 +14,25 @@ services:
       - ./backend:/app
     # Using reload for easier local development
     command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    container_name: admit-ai-redis
+    ports:
+      - "6379:6379"
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: admit-ai-worker
+    env_file:
+      - backend/.env
+    volumes:
+      - ./backend:/app
+    command: python app/workers/campaign_worker.py
+    depends_on:
+      - redis
+      - backend

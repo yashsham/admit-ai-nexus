@@ -40,7 +40,8 @@ export class ChatService {
     history: ChatMessage[] = [],
     dashboardContext?: any,
     onToken?: (token: string) => void,
-    userId?: string
+    userId?: string,
+    token?: string
   ): Promise<ChatResponse> {
     try {
       console.log("Sending chat request to backend...");
@@ -53,11 +54,17 @@ export class ChatService {
         user_id: userId
       };
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${API_URL}/chat/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify(payload)
       });
 

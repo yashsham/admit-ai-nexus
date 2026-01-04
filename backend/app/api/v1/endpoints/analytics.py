@@ -6,7 +6,10 @@ import asyncio
 
 router = APIRouter()
 
+from app.services.cache import cache_response
+
 @router.get("/engagement")
+@cache_response(ttl=300, key_prefix="analytics_engagement")
 async def get_candidate_engagement(current_user: User = Depends(get_current_user)):
     """
     Returns candidate engagement metrics (Interested vs Others)
@@ -29,6 +32,7 @@ async def get_candidate_engagement(current_user: User = Depends(get_current_user
         return {"error": str(e)}
 
 @router.get("")
+@cache_response(ttl=60, key_prefix="analytics_main")
 async def get_analytics(campaign_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
     try:
         # 1. Scope Validation: Fetch User's Campaigns

@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL") or ""
     SUPABASE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY") or ""
     SUPABASE_ANON_KEY: str = os.getenv("VITE_SUPABASE_ANON_KEY", "")
+    
+    # Redis
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
 
     # LLM (Groq & Gemini)
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY") or os.getenv("VITE_GROQ_API_KEY") or ""
@@ -49,7 +52,12 @@ class Settings(BaseSettings):
 
     # Email (Internal Logic)
     GMAIL_USER: Optional[str] = os.getenv("GMAIL_USER")
+    GMAIL_USER: Optional[str] = os.getenv("GMAIL_USER")
     GMAIL_APP_PASSWORD: Optional[str] = os.getenv("GMAIL_APP_PASSWORD")
+
+    # Billing (Razorpay)
+    RAZORPAY_KEY_ID: Optional[str] = os.getenv("RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET: Optional[str] = os.getenv("RAZORPAY_KEY_SECRET")
 
     class Config:
         env_file = ".env"

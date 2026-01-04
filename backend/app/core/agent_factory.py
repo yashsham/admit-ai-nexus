@@ -12,6 +12,7 @@ import json
 # For simplicity, we initialize the primary model here. Fallback logic is better handled at the calling level or via try/except blocks.
 
 from phi.model.openai import OpenAIChat
+from phi.model.huggingface import HuggingFaceChat
 
 def get_model_priority(temperature=0.7) -> List[Any]:
     """
@@ -25,13 +26,13 @@ def get_model_priority(temperature=0.7) -> List[Any]:
         try:
             # OpenRouter uses OpenAI-compatible API
             models.append(OpenAIChat(
-                model="openai/gpt-oss-120b", # Requested Pro Model
-                id="openai/gpt-oss-120b",
+                model="openai/gpt-4o", # Standard OpenAI Model via OpenRouter
+                id="openai/gpt-4o",
                 api_key=settings.OPENROUTER_API_KEY,
                 base_url="https://openrouter.ai/api/v1",
                 temperature=temperature
             ))
-            print("✅ [Init] OpenRouter (Liquid LFM 40B) Loaded")
+            print("✅ [Init] OpenRouter (GPT-4o) Loaded")
         except Exception as e:
             print(f"❌ [Init] OpenRouter Failed: {e}")
 
@@ -177,7 +178,7 @@ def get_assistant_agent(dashboard_context: dict = None, user_id: str = "default_
         context_str = f"## REAL-TIME CONTEXT\n{json.dumps(safe_context, indent=2)}"
 
     return Agent(
-        model=get_model(),
+        model=model or get_model(),
         tools=[create_campaign, get_dashboard_stats],
         description="You are the AdmitConnect AI Assistant.",
         instructions=[

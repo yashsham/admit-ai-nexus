@@ -1,4 +1,9 @@
-from agents.campaign_crew import CampaignCrew
+import sys
+import os
+# Add backend to path
+sys.path.append(os.path.join(os.getcwd(), 'backend'))
+
+from app.services.campaign_crew import CampaignCrew
 import os
 from dotenv import load_dotenv
 

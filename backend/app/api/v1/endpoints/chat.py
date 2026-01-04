@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import List, Optional
 from langchain_groq import ChatGroq
@@ -24,32 +24,46 @@ class ChatRequest(BaseModel):
 
 from app.core.llm_factory import get_llm_with_fallback
 
+from app.services.auth.dependencies import get_current_user, User
+from app.core.limiter import limiter
+
 @router.post("/")
-async def chat_endpoint(request: ChatRequest):
+@limiter.limit("10/minute")
+async def chat_endpoint(request: Request, body: ChatRequest, current_user: User = Depends(get_current_user)):
     try:
         from app.core.agent_factory import get_counselor_agent, get_assistant_agent, get_model_priority
         
+        from app.services.ai.components import PromptValidator, CostTracker
+        
+        # 0. Prompt Validation
+        if not PromptValidator.validate(body.message):
+            return StreamingResponse(
+                iter(["I cannot process this request due to safety guidelines."]),
+                media_type="text/plain"
+            )
+
         # 1. Get List of Models (Gemini -> HF -> Groq)
         priority_models = get_model_priority()
         
         async def response_generator():
             last_error = None
             success = False
+            full_response_text = ""
             
             for model_instance in priority_models:
                 try:
                     # Select Agent with specific model
-                    if request.context == "counselor":
+                    if body.context == "counselor":
                         agent = get_counselor_agent(model=model_instance)
-                        prompt = request.message
+                        prompt = body.message
                     else:
                         # Pass user_id to the agent factory to inject into tools
                         agent = get_assistant_agent(
-                            dashboard_context=request.dashboard_context, 
-                            user_id=request.user_id,
+                            dashboard_context=body.dashboard_context, 
+                            user_id=current_user.id,
                             model=model_instance
                         )
-                        prompt = request.message
+                        prompt = body.message
 
                     # Log internal switch
                     # yield f"\n<!-- Switching to model: {type(model_instance).__name__} -->\n"
@@ -69,6 +83,7 @@ async def chat_endpoint(request: ChatRequest):
                         # Process Visibility Logic
                         if content_to_yield:
                             stripped = content_to_yield.strip()
+                            full_response_text += content_to_yield
                             
                             # 1. Hide Internal JSON Errors or Raw Tool Outputs if needed
                             if stripped.startswith("Error:") or "traceback" in stripped.lower():
@@ -97,6 +112,13 @@ async def chat_endpoint(request: ChatRequest):
                             yield content_to_yield
                     
                     if success:
+                        # Track Cost (Estimate)
+                        try:
+                            # 1 token ~= 4 chars
+                            input_est = len(prompt) / 4
+                            output_est = len(full_response_text) / 4
+                            CostTracker.track_request("auto-selected", int(input_est), int(output_est))
+                        except Exception: pass
                         break # Exit loop if successful
                         
                 except Exception as e:

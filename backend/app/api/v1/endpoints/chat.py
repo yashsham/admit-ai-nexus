@@ -36,9 +36,11 @@ async def chat_endpoint(request: Request, body: ChatRequest, current_user: User 
         from app.services.ai.components import PromptValidator, CostTracker
         
         # 0. Prompt Validation
-        if not PromptValidator.validate(body.message):
+        is_safe, reason = PromptValidator.validate(body.message)
+        if not is_safe:
+            print(f"[Security] Request Blocked: {reason}")
             return StreamingResponse(
-                iter(["I cannot process this request due to safety guidelines."]),
+                iter([f"I cannot process this request. Safety System: {reason}"]),
                 media_type="text/plain"
             )
 

@@ -6,6 +6,7 @@ from app.services.supabase_client import supabase
 from app.services import tools 
 from app.services.campaign_crew import CampaignCrew
 from app.services.llm_generation import generate_personalized_content
+from app.services.task_queue import task_queue
 import time
 
 router = APIRouter()
@@ -232,8 +233,8 @@ async def create_campaign_endpoint(request: CampaignRequest, background_tasks: B
         res = supabase.table("campaigns").insert(data).execute()
         campaign_id = res.data[0]['id']
 
-        # Auto-Execute
-        background_tasks.add_task(run_campaign_execution, campaign_id)
+        # Auto-Execute via ARQ Worker
+        await task_queue.enqueue("execute_campaign_task", campaign_id)
         
         return {"success": True, "campaign": res.data[0], "message": "Campaign created and execution started."}
     except Exception as e:
@@ -248,12 +249,8 @@ async def execute_campaign_endpoint(request: ExecutionRequest, background_tasks:
         if not res.data:
             raise HTTPException(status_code=404, detail="Campaign not found")
         
-        # Publish to Redis Queue
-        await event_queue.publish("campaign_events", {
-            "type": "execute_campaign",
-            "campaign_id": request.campaign_id,
-            "user_id": current_user.id
-        })
+        # Publish to Redis Queue (ARQ)
+        await task_queue.enqueue("execute_campaign_task", request.campaign_id)
         
         return {"success": True, "message": "Campaign queued for execution."}
     except Exception as e:

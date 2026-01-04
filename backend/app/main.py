@@ -15,6 +15,7 @@ from app.services.tools import scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    setup_logging()
     print("--- STARTING ADMIT AI NEXUS BACKEND ---")
     # Debug: Print all routes
     for route in app.routes:
@@ -58,8 +59,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.core.middleware import MultiTenancyMiddleware
+from app.core.middleware import MultiTenancyMiddleware, RequestLoggingMiddleware
+from app.core.logger_config import setup_logging
+
 app.add_middleware(MultiTenancyMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 
 # API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)

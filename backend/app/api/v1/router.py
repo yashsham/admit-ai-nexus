@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import campaigns, candidates, analytics, health, misc, billing
+from app.api.v1 import campaigns, candidates, analytics, health, misc, billing
 
 api_router = APIRouter()
 
@@ -9,8 +9,8 @@ api_router.include_router(candidates.router, prefix="/candidates", tags=["candid
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(misc.router, tags=["misc"])
 api_router.include_router(billing.router, prefix="/billing", tags=["billing"])
-from app.api.v1.endpoints import chat
+from app.api.v1 import chat
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 
-from app.api.v1.endpoints import inbound_webhook
+from app.api.v1 import inbound_webhook
 api_router.include_router(inbound_webhook.router, tags=["webhooks"])

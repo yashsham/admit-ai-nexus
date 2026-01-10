@@ -1,5 +1,5 @@
 from langchain_core.tools import tool
-from app.services.supabase_client import supabase
+from app.data.supabase_client import supabase
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import json

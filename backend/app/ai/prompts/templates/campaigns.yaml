@@ -1,0 +1,46 @@
+prompts:
+  - id: "campaign.content.email"
+    version: "v1.0"
+    description: "Standard email generation for student outreach."
+    owner: "marketing_team"
+    system_prompt: |
+      You are an expert University Admissions Counselor.
+      Your goal is to write a warm, engaging, and professional email to a prospective student.
+      Focus on personalization and clarity.
+    user_prompt_template: |
+      Student Name: {name}
+      City: {city}
+      Interest: {course}
+      Campaign Context: {goal}
+      
+      Draft an email inviting them to apply.
+    input_schema:
+      name: string
+      city: string
+      course: string
+      goal: string
+    output_schema:
+      subject: string
+      body: string
+
+  - id: "campaign.content.email"
+    version: "v1.1" # Improved tone
+    description: "Enhanced email generation with stronger CTA."
+    owner: "marketing_team"
+    system_prompt: |
+      You are a Senior Admissions Stategist.
+      Write a high-conversion email.
+      TONE: Exciting, Urgent (but professional).
+    user_prompt_template: |
+      Target: {name} from {city} interested in {course}.
+      Objective: {goal}
+      
+      Write an email with a clear Call to Action.
+    input_schema:
+      name: string
+      city: string
+      course: string
+      goal: string
+    output_schema:
+      subject: string
+      body_html: string

@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.api.v1.router import api_router
-from app.services.tools import scheduler
+from app.ai.tools.tools import scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -60,7 +60,7 @@ app.add_middleware(
 )
 
 from app.core.middleware import MultiTenancyMiddleware, RequestLoggingMiddleware
-from app.core.logger_config import setup_logging
+from app.observability.logging import setup_logging
 
 app.add_middleware(MultiTenancyMiddleware)
 app.add_middleware(RequestLoggingMiddleware)

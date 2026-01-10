@@ -20,7 +20,7 @@ stripe==8.6.0
 python-multipart==0.0.9
 email-validator
 # New Additions for Async Workers & AI Migration
-redis==5.0.3
+redis==4.6.0
 hiredis==2.3.2
 arq==0.26.0
 phidata==2.4.21

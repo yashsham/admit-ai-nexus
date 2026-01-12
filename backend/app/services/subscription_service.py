@@ -10,24 +10,24 @@ class SubscriptionService:
     # Plan Limits Configuration
     PLANS = {
         "starter": {
-            "voice_calls": 500,
-            "whatsapp_msgs": 1000,
-            "email_sent": 1000,
-            "campaigns": 2, # Active templates? Or total? Let's say Total Active campaigns.
+            "voice_calls": 50,
+            "whatsapp_msgs": 100,
+            "email_sent": 100,
+            "campaigns": 5, # Active templates? Or total? Let's say Total Active campaigns.
             "analytics_advanced": False
         },
         "professional": {
-            "voice_calls": 2500,
-            "whatsapp_msgs": 5000,
-            "email_sent": 20000,
-            "campaigns": 9999, # Unlimited
+            "voice_calls": 500,
+            "whatsapp_msgs": 1000,
+            "email_sent": 1000,
+            "campaigns": 50, # Unlimited
             "analytics_advanced": True
         },
         "enterprise": {
             "voice_calls": 10000,
             "whatsapp_msgs": 20000,
-            "email_sent": 99999, # Unlimited
-            "campaigns": 9999,
+            "email_sent": 20000, # Unlimited
+            "campaigns": 500,
             "analytics_advanced": True
         }
     }

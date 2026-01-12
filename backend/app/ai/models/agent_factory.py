@@ -1,18 +1,18 @@
-from phi.agent import Agent, RunResponse
-from phi.model.groq import Groq
-from phi.model.google import Gemini
-from phi.tools.tavily import TavilyTools
+from agno.agent import Agent, RunOutput
+from agno.models.groq import Groq
+from agno.models.google import Gemini
+from agno.tools.tavily import TavilyTools
 from typing import Optional, List, Dict, Any
 from app.core.config import settings
 import json
 
 # --- Helper: Model Factory with Fallback Logic ---
-# Note: Agno/Phi doesn't have automatic fallback chain like LangChain.
+# Note: Agno doesn't have automatic fallback chain like LangChain.
 # We will verify Groq first, and if it fails during init or run (not easily caught here), we default to Gemini.
 # For simplicity, we initialize the primary model here. Fallback logic is better handled at the calling level or via try/except blocks.
 
-from phi.model.openai import OpenAIChat
-from phi.model.huggingface import HuggingFaceChat
+from agno.models.openai import OpenAIChat
+from agno.models.huggingface import HuggingFaceChat
 
 def get_model_priority(temperature=0.7) -> List[Any]:
     """

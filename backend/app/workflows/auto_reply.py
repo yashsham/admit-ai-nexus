@@ -1,4 +1,4 @@
-from phi.agent import Agent
+from agno.agent import Agent
 from app.core.config import settings
 from app.ai.models.agent_factory import get_model_priority as get_model
 

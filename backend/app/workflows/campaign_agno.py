@@ -1,10 +1,10 @@
 try:
-    import phi
-    from phi.agent import Agent
+    import agno
+    from agno.agent import Agent
 except ImportError:
     import sys
-    print(f"DEBUG: phi location: {getattr(phi, '__file__', 'unknown')}")
-    print(f"DEBUG: phi dir: {dir(phi)}")
+    print(f"DEBUG: agno location: {getattr(agno, '__file__', 'unknown')}")
+    print(f"DEBUG: agno dir: {dir(agno)}")
     raise
 from app.ai.models.agent_factory import get_model_priority
 from typing import Dict, Any
@@ -14,7 +14,7 @@ logger = logging.getLogger("service.agno")
 
 class CampaignAgno:
     """
-    Replaces CampaignCrew (CrewAI) with Agno (Phidata) Agents.
+    Replaces CampaignCrew (CrewAI) with Agno Agents.
     Supports Multi-Model Fallback.
     """
     def __init__(self, goal: str):

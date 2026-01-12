@@ -13,6 +13,7 @@ langchain-google-genai==0.0.11
 google-auth
 google-auth-httplib2
 google-auth-oauthlib
+google-genai
 requests==2.31.0
 slowapi==0.1.9
 twilio==9.0.4

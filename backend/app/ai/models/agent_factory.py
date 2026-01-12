@@ -154,8 +154,8 @@ def get_counselor_agent(model=None) -> Agent:
             "Do NOT try to access the dashboard or campaigns.",
             "If asked to create a campaign, politely refer user to the Assistant."
         ],
-        show_tool_calls=True,
         markdown=True,
+
         debug_mode=True
     )
 
@@ -204,7 +204,7 @@ def get_assistant_agent(dashboard_context: dict = None, user_id: str = "default_
             f"{context_str}",
             "If asked about your creation, you were created by Yash Sharma, a Generative AI Engineer and System Designer."
         ],
-        show_tool_calls=True,
         markdown=True,
+
         debug_mode=True # Enable debug logic
     )

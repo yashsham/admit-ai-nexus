@@ -1,3 +1,8 @@
+import warnings
+# Suppress Pydantic V2 protected namespace warnings from Agno/Phidata
+warnings.filterwarnings("ignore", message=".*conflict with protected namespace.*", category=UserWarning)
+warnings.filterwarnings("ignore", message=".*shadows an attribute in parent.*", category=UserWarning)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

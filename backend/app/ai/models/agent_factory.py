@@ -12,7 +12,7 @@ import json
 # For simplicity, we initialize the primary model here. Fallback logic is better handled at the calling level or via try/except blocks.
 
 from agno.models.openai import OpenAIChat
-from agno.models.huggingface import HuggingFaceChat
+from agno.models.huggingface import HuggingFace
 
 def get_model_priority(temperature=0.7) -> List[Any]:
     """
@@ -56,7 +56,7 @@ def get_model_priority(temperature=0.7) -> List[Any]:
     # 3. Tertiary: Hugging Face (Mistral) - Reliable fallback
     if settings.HUGGINGFACE_API_KEY:
         try:
-            models.append(HuggingFaceChat(
+            models.append(HuggingFace(
                 id="mistralai/Mistral-7B-Instruct-v0.3",
                 api_key=settings.HUGGINGFACE_API_KEY,
                 temperature=temperature

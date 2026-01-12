@@ -1,6 +1,6 @@
 from agno.agent import Agent
 from app.core.config import settings
-from app.ai.models.agent_factory import get_model_priority as get_model
+from app.ai.models.agent_factory import get_model
 
 def get_auto_reply_agent() -> Agent:
     """
@@ -18,8 +18,8 @@ def get_auto_reply_agent() -> Agent:
         model=get_model(),
         description="Auto-Reply Admission Bot",
         instructions=instructions,
-        markdown=True,
-        show_tool_calls=False
+        markdown=True
+
         # structured_outputs=True # If supported by model, or just prompt engineering
     )
 

@@ -34,7 +34,6 @@ def get_model_priority(temperature=0.7) -> List[Any]:
         try:
             # OpenRouter uses OpenAI-compatible API
             models.append(OpenAIChat(
-                model="openai/gpt-4o", # Standard OpenAI Model via OpenRouter
                 id="openai/gpt-4o",
                 api_key=settings.OPENROUTER_API_KEY,
                 base_url="https://openrouter.ai/api/v1",

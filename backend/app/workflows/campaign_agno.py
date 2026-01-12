@@ -1,4 +1,11 @@
-from phi.agent import Agent
+try:
+    import phi
+    from phi.agent import Agent
+except ImportError:
+    import sys
+    print(f"DEBUG: phi location: {getattr(phi, '__file__', 'unknown')}")
+    print(f"DEBUG: phi dir: {dir(phi)}")
+    raise
 from app.ai.models.agent_factory import get_model_priority
 from typing import Dict, Any
 import logging

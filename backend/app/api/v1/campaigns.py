@@ -184,6 +184,19 @@ async def run_campaign_execution(campaign_id: str, campaign_data: dict = None, r
                  return
 
         logging.info(f"Recipients found: {len(recipients)}")
+        
+        # Deduplication
+        unique_recipients = []
+        seen_contacts = set()
+        
+        for r in recipients:
+            # Identifier: Email or Phone
+            identifier = r.get("email") or r.get("phone")
+            if identifier and identifier not in seen_contacts:
+                seen_contacts.add(identifier)
+                unique_recipients.append(r)
+        
+        logging.info(f"Unique Recipients: {len(unique_recipients)}")
         supabase.table("campaigns").update({"status": "active"}).eq("id", campaign_id).execute()
         
         channels = campaign_data.get("channels", []) or ["email"]
@@ -201,22 +214,38 @@ async def run_campaign_execution(campaign_id: str, campaign_data: dict = None, r
                     logging.error(f"Error processing {recipient.get('email', 'unknown')}: {e}")
                     return {"success": False}
 
-        results = await asyncio.gather(*[protected_process(r) for r in recipients])
+        # Wait for all async tasks
+        results = await asyncio.gather(*[protected_process(r) for r in unique_recipients])
         
-        success_count = sum(1 for r in results if r.get("success"))
-        fail_count = len(results) - success_count
+        # --- Update Campaign Stats (Accurate Sync) ---
+        # Instead of trusting the volatile return values, we count what was actually logged to DB.
         
-        # Note: process_recipient currently handles its own DB inserts. 
-        # Ideally, we would batch those too, but `process_recipient` logic is intertwined with tools.
-        # For this phase, parallelizing execution provides the biggest speedup (10x).
-        
+        # 1. Count Messages (Email + Whatsapp)
+        res_msgs = supabase.table("campaign_executions") \
+            .select("id", count="exact", head=True) \
+            .eq("campaign_id", campaign_id) \
+            .in_("channel", ["email", "whatsapp"]) \
+            .eq("status", "delivered") \
+            .execute()
+        count_msgs = res_msgs.count or 0
+
+        # 2. Count Calls (Voice)
+        res_calls = supabase.table("campaign_executions") \
+            .select("id", count="exact", head=True) \
+            .eq("campaign_id", campaign_id) \
+            .eq("channel", "voice") \
+            .eq("status", "completed") \
+            .execute()
+        count_calls = res_calls.count or 0
+
         supabase.table("campaigns").update({
             "status": "completed", 
             "updated_at": "now()",
-            "messages_sent": success_count
+            "messages_sent": count_msgs,
+            "calls_made": count_calls
         }).eq("id", campaign_id).execute()
         
-        logging.info(f"CAMPAIGN FINISHED: Success={success_count}, Fail={fail_count}")
+        logging.info(f"CAMPAIGN FINISHED: Msgs={count_msgs}, Calls={count_calls}")
 
     except Exception as e:
         logging.critical(f"FATAL CAMPAIGN ERROR: {e}")

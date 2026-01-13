@@ -27,9 +27,22 @@ from app.ai.models.llm_factory import get_llm_with_fallback
 from app.security.dependencies import get_current_user, User
 from app.core.limiter import limiter
 
+async def get_optional_user(request: Request):
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if not token:
+        return None
+    try:
+        from app.security.service import auth_service
+        user_data = auth_service.get_user(token)
+        if user_data:
+            return User(**user_data)
+    except:
+        pass
+    return None
+
 @router.post("/")
 @limiter.limit("10/minute")
-async def chat_endpoint(request: Request, body: ChatRequest, current_user: User = Depends(get_current_user)):
+async def chat_endpoint(request: Request, body: ChatRequest, current_user: Optional[User] = Depends(get_optional_user)):
     try:
         from app.ai.models.agent_factory import get_counselor_agent, get_assistant_agent, get_model_priority
         
@@ -60,9 +73,10 @@ async def chat_endpoint(request: Request, body: ChatRequest, current_user: User 
                         prompt = body.message
                     else:
                         # Pass user_id to the agent factory to inject into tools
+                        uid = current_user.id if current_user else "public_guest"
                         agent = get_assistant_agent(
                             dashboard_context=body.dashboard_context, 
-                            user_id=current_user.id,
+                            user_id=uid,
                             model=model_instance
                         )
                         prompt = body.message

@@ -6,13 +6,23 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || (isProd ? 'https://admit-ai
 
 export const api = {
     campaigns: {
-        create: async (userId: string, name: string, instructions: string, channels: string[] = ["email", "whatsapp"]) => {
+        create: async (userId: string, name: string, instructions: string, channels: string[] = ["email", "whatsapp"], targetAudience: string = "all") => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
             const response = await fetch(`${API_BASE_URL}/campaigns/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
-                body: JSON.stringify({ user_id: userId, name: name, goal: instructions, channels: channels }),
+                body: JSON.stringify({
+                    user_id: userId,
+                    name: name,
+                    goal: instructions,
+                    channels: channels,
+                    target_audience: targetAudience
+                }),
             });
 
             if (!response.ok) {
@@ -23,10 +33,14 @@ export const api = {
         },
 
         execute: async (campaignId: string) => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
             const response = await fetch(`${API_BASE_URL}/campaigns/execute`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify({ campaign_id: campaignId }),
             });
@@ -39,8 +53,14 @@ export const api = {
         },
 
         delete: async (campaignId: string) => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
             const response = await fetch(`${API_BASE_URL}/campaigns/${campaignId}`, {
                 method: 'DELETE',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
             });
 
             if (!response.ok) {

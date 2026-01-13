@@ -9,7 +9,7 @@ router = APIRouter()
 from app.core.cache import cache_response
 
 @router.get("/engagement")
-@cache_response(ttl=300, key_prefix="analytics_engagement")
+@cache_response(ttl=60, key_prefix="analytics_engagement")
 async def get_candidate_engagement(current_user: User = Depends(get_current_user)):
     """
     Returns candidate engagement metrics (Interested vs Others)
@@ -112,6 +112,10 @@ async def get_analytics(campaign_id: Optional[str] = None, current_user: User = 
             asyncio.to_thread(lambda: get_count("campaign_executions", {"channel": "email", "status": "failed"})),
             asyncio.to_thread(lambda: get_count("campaign_executions", {"channel": "whatsapp", "status": "delivered"})),
             asyncio.to_thread(lambda: get_count("campaign_executions", {"channel": "whatsapp", "status": "failed"})),
+            # New metrics: Voice Calls and Responses
+            asyncio.to_thread(lambda: get_count("campaign_executions", {"channel": "voice", "status": "completed"})),
+            asyncio.to_thread(lambda: get_count("campaign_executions", {"channel": "voice", "status": "failed"})),
+            asyncio.to_thread(lambda: supabase.table("candidates").select("id", count="exact", head=True).eq("user_id", current_user.id).eq("status", "responded").execute()),
             return_exceptions=True
         )
         
@@ -130,15 +134,20 @@ async def get_analytics(campaign_id: Optional[str] = None, current_user: User = 
         channel_stats = {
             "email": {"sent": get_cnt(results[5]), "failed": get_cnt(results[6])},
             "whatsapp": {"sent": get_cnt(results[7]), "failed": get_cnt(results[8])},
-            "voice": {"sent": 0, "failed": 0} # Placeholder
+            "voice": {"sent": get_cnt(results[9]), "failed": get_cnt(results[10])}
         }
+        
+        calls_made = get_cnt(results[9])
+        responses_received = get_cnt(results[11])
         
         return {
             "overview": {
                 "total_sent": total_msg,
                 "delivery_rate": (delivered / total_msg * 100) if total_msg > 0 else 0,
                 "active_campaigns": len(user_campaign_ids),
-                "interested_candidates": interested_count
+                "interested_candidates": interested_count,
+                "calls_made": calls_made,
+                "responses_received": responses_received
             },
             "channel_stats": channel_stats,
             "recent_failures": failures_data,

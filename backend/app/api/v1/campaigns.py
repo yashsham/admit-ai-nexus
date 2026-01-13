@@ -16,6 +16,7 @@ class CampaignRequest(BaseModel):
     goal: str
     name: Optional[str] = None
     channels: Optional[List[str]] = ["email", "whatsapp"]
+    target_audience: Optional[str] = "all" 
 
 class ExecutionRequest(BaseModel):
     campaign_id: str
@@ -155,11 +156,31 @@ async def run_campaign_execution(campaign_id: str, campaign_data: dict = None, r
             campaign_data = res.data
         
         if not recipients:
-            tag_filter = f"campaign:{campaign_id}"
-            cand_res = supabase.table("candidates").select("*").cs("tags", [tag_filter]).execute()
-            recipients = cand_res.data
+            meta = campaign_data.get("metadata", {}) or {}
+            target_audience = meta.get("target_audience", "all")
+            
+            if target_audience == "all":
+                # Fetch ALL candidates for this user
+                owner_id = campaign_data.get("user_id")
+                if owner_id:
+                     cand_res = supabase.table("candidates").select("*").eq("user_id", owner_id).execute()
+                     recipients = cand_res.data
+                else:
+                     logging.warning(f"No owner_id found for campaign {campaign_id}")
+                     recipients = []
+            elif target_audience.startswith("tag:"):
+                # Fetch by Tag
+                tag = target_audience.split("tag:")[1]
+                cand_res = supabase.table("candidates").select("*").cs("tags", [tag]).execute()
+                recipients = cand_res.data
+            else:
+                # Fallback: Tag with campaign_id
+                tag_filter = f"campaign:{campaign_id}"
+                cand_res = supabase.table("candidates").select("*").cs("tags", [tag_filter]).execute()
+                recipients = cand_res.data
+            
             if not recipients:
-                 logging.warning(f"No candidates found for {campaign_id}")
+                 logging.warning(f"No candidates found for {campaign_id} (Target: {target_audience})")
                  return
 
         logging.info(f"Recipients found: {len(recipients)}")
@@ -228,7 +249,8 @@ async def create_campaign_endpoint(request: CampaignRequest, background_tasks: B
             "type": "personalized", 
             "channels": request.channels or ["email", "whatsapp"], 
             "messages_sent": 0,
-            "metadata": {"ai_plan": str(plan_result), "ai_prompt": request.goal}
+            "messages_sent": 0,
+            "metadata": {"ai_plan": str(plan_result), "ai_prompt": request.goal, "target_audience": request.target_audience}
         }
         res = supabase.table("campaigns").insert(data).execute()
         campaign_id = res.data[0]['id']

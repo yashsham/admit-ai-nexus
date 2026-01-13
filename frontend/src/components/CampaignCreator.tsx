@@ -27,7 +27,9 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
   const [campaignData, setCampaignData] = useState({
     name: '',
     type: '',
+
     scheduledAt: '',
+    targetAudience: 'all',
   });
   const [aiInstructions, setAiInstructions] = useState('');
   const [promptOpen, setPromptOpen] = useState(false);
@@ -87,7 +89,8 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
         user.id,
         campaignData.name,
         aiInstructions,
-        channels
+        channels,
+        campaignData.targetAudience
       );
 
       if (result.success) {
@@ -100,7 +103,9 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
         setCampaignData({
           name: '',
           type: '',
+
           scheduledAt: '',
+          targetAudience: 'all',
         });
         setAiInstructions('');
         onCampaignCreated?.();
@@ -160,6 +165,24 @@ export const CampaignCreator = ({ onCampaignCreated }: CampaignCreatorProps) => 
                     </SelectItem>
                   );
                 })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="audience">Target Audience</Label>
+            <Select
+              value={campaignData.targetAudience}
+              onValueChange={(value) => handleInputChange('targetAudience', value)}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select audience" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Candidates</SelectItem>
+                <SelectItem value="tag:new">New Leads (Tagged 'new')</SelectItem>
+                <SelectItem value="tag:interested">Interested (Tagged 'interested')</SelectItem>
+                <SelectItem value="tag:waitlist">Waitlist (Tagged 'waitlist')</SelectItem>
               </SelectContent>
             </Select>
           </div>

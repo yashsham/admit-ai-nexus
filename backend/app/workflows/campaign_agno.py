@@ -3,8 +3,8 @@ try:
     from agno.agent import Agent
 except ImportError:
     import sys
-    print(f"DEBUG: agno location: {getattr(agno, '__file__', 'unknown')}")
-    print(f"DEBUG: agno dir: {dir(agno)}")
+    import sys
+    print("DEBUG: agno module not found. Please install it.")
     raise
 from app.ai.models.agent_factory import get_model_priority
 from typing import Dict, Any

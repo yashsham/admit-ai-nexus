@@ -56,33 +56,6 @@ def get_llm_with_fallback(temperature=0.7):
     # Groq -> Gemini
     return groq_llm.with_fallbacks(fallbacks)
 
-def get_llm_with_fallback(model_id: str = None, temperature=0.7):
-    """
-    Returns a Runnable LLM with Retries and Fallbacks.
-    Args:
-        model_id: Optional specific model to request (e.g. from Router).
-    """
-    # Map internal model IDs to LangChain classes if needed, 
-    # or just use the defaults if none provided.
-    
-    # Logic:
-    # 1. If model_id is high-end (gpt-4o), try it first.
-    # 2. If standard, default to Groq -> Gemini.
-    
-    if model_id == "gpt-4o":
-        # Placeholder for OpenAI (assuming env var exists)
-        # from langchain_openai import ChatOpenAI
-        # return ChatOpenAI(model="gpt-4o", temperature=temperature).with_retry(stop_after_attempt=3)
-        pass # Fallback to default for this demo if no key
-        
-    # Default Chain: Groq -> Gemini
-    # Primary: Groq
-    groq_llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        api_key=settings.GROQ_API_KEY,
-        temperature=temperature
-    )
-
 
 def get_crewai_llm(temperature=0.7):
     """

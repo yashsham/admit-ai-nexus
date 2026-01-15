@@ -274,28 +274,19 @@ async def create_campaign_endpoint(request: CampaignRequest, background_tasks: B
             "user_id": request.user_id,
             "name": request.name or request.goal[:30],
             "goal": request.goal,
-            "status": "active",
+            "status": "draft",
             "type": "personalized", 
             "channels": request.channels or ["email", "whatsapp"], 
-            "messages_sent": 0,
             "messages_sent": 0,
             "metadata": {"ai_plan": str(plan_result), "ai_prompt": request.goal, "target_audience": request.target_audience}
         }
         res = supabase.table("campaigns").insert(data).execute()
         campaign_id = res.data[0]['id']
 
-        # Auto-Execute via ARQ Worker (or Fallback)
-        try:
-            queued = await task_queue.enqueue("execute_campaign_task", campaign_id)
-            if not queued:
-                raise Exception("Redis Enqueue returned False")
-        except Exception as e:
-            logging.warning(f"Worker Queue Failed ({e}). Using BackgroundTasks fallback.")
-            from app.workflows.tasks import execute_campaign_task
-            # Pass None as ctx
-            background_tasks.add_task(execute_campaign_task, None, campaign_id)
+        # NOTE: Auto-execution removed per user request. 
+        # Campaigns now wait for manual trigger via /execute endpoint.
         
-        return {"success": True, "campaign": res.data[0], "message": "Campaign created and execution started."}
+        return {"success": True, "campaign": res.data[0], "message": "Campaign created successfully. Click Execute to start."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

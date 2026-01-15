@@ -41,6 +41,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { InterestedCandidatesList } from "./InterestedCandidatesList";
 
@@ -66,16 +74,6 @@ interface CampaignData {
   responses_received: number;
   created_at: string;
 }
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
 
 interface ChannelStat {
   sent: number;
@@ -138,16 +136,18 @@ export const CampaignAnalytics = () => {
         : campaignsData?.filter(c => c.id === selectedCampaignId);
 
       const messagesSent = backendMetrics.overview?.total_sent || 0;
+      const callsMade = backendMetrics.overview?.calls_made || 0;
+      const responsesReceived = backendMetrics.overview?.responses_received || 0;
 
       setMetrics({
         totalCampaigns: selectedCampaignId === "all" ? totalCampaigns : 1,
         activeCampaigns: backendMetrics.overview?.active_campaigns || 0,
         totalCandidates: filteredCampaigns?.reduce((sum, c) => sum + (c.candidates_count || 0), 0) || 0,
         messagesSent,
-        callsMade: 0,
-        responsesReceived: 0,
+        callsMade,
+        responsesReceived,
         conversionRate: backendMetrics.overview?.delivery_rate || 0,
-        interestedCandidates: backendMetrics.overview?.interested_candidates || 0, // New field from backend
+        interestedCandidates: backendMetrics.overview?.interested_candidates || 0,
       });
 
       if (backendMetrics.channel_stats) {
@@ -156,13 +156,6 @@ export const CampaignAnalytics = () => {
       if (backendMetrics.recent_failures) {
         setFailures(backendMetrics.recent_failures);
       }
-
-      // Prepare analytics chart data
-      // If "all", show top campaigns. If "selected", maybe show time-series if available?
-      // For now, simpler: If selected, just show that single campaign's stats as a single bar/point or similar logic
-      // But actually, the previous logic mapped *campaigns* to bars. 
-      // If we select one, we might want to see breakdown by something else, or just that one bar compared to others?
-      // Let's stick to showing the filtered list.
 
       const chartData = filteredCampaigns?.slice(0, 7).map(campaign => ({
         name: campaign.name.substring(0, 15) + (campaign.name.length > 15 ? '...' : ''),

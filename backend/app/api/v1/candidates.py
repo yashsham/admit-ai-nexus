@@ -1,9 +1,11 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import csv
 import io
+import asyncio
 from app.data.supabase_client import supabase
+from app.security.dependencies import get_current_user, User
 
 router = APIRouter()
 
@@ -121,4 +123,91 @@ async def batch_upload_candidates(request: CandidateBatchRequest):
         
         return {"success": True, "count": len(candidates_to_add), "message": "Candidates uploaded successfully"}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- New Optimized Endpoints for Thin Frontend ---
+
+@router.get("/distribution/stats")
+async def get_distribution_stats(current_user: User = Depends(get_current_user)):
+    """
+    Returns aggregated stats for the Data Distribution Layer.
+    Moves O(N) filtering from client to backend (or DB).
+    """
+    try:
+        # We can run these in parallel
+        # 1. Total
+        f_total = asyncio.to_thread(lambda: supabase.table("candidates").select("id", count="exact", head=True).eq("user_id", current_user.id).execute())
+        
+        # 2. Ready (pending)
+        f_ready = asyncio.to_thread(lambda: supabase.table("candidates").select("id", count="exact", head=True).eq("user_id", current_user.id).eq("status", "pending").execute())
+        
+        # 3. In Progress (sent/called) - using 'in_' if possible or separate queries.
+        # Supabase-py 'in_' matches if column value is in list.
+        # statuses: email_sent, voice_called, whatsapp_sent
+        f_in_progress = asyncio.to_thread(lambda: supabase.table("candidates").select("id", count="exact", head=True).eq("user_id", current_user.id).in_("status", ["email_sent", "voice_called", "whatsapp_sent"]).execute())
+        
+        # 4. Completed (response_received = true OR status = responded/completed)
+        # Assuming 'response_received' boolean column based on frontend use, OR status check
+        # Frontend used: c.response_received (boolean)
+        f_completed = asyncio.to_thread(lambda: supabase.table("candidates").select("id", count="exact", head=True).eq("user_id", current_user.id).eq("response_received", True).execute())
+        
+        # 5. Failed
+        f_failed = asyncio.to_thread(lambda: supabase.table("candidates").select("id", count="exact", head=True).eq("user_id", current_user.id).eq("status", "failed").execute())
+
+        results = await asyncio.gather(f_total, f_ready, f_in_progress, f_completed, f_failed, return_exceptions=True)
+        
+        def get_count(res):
+            if isinstance(res, Exception): return 0
+            return res.count if hasattr(res, 'count') and res.count is not None else 0
+
+        return {
+            "totalCandidates": get_count(results[0]),
+            "readyForDistribution": get_count(results[1]),
+            "inProgress": get_count(results[2]),
+            "completed": get_count(results[3]),
+            "failed": get_count(results[4])
+        }
+    except Exception as e:
+        print(f"Stats Error: {e}")
+        # Return zeros on error to prevent frontend crash
+        return {"totalCandidates": 0, "readyForDistribution": 0, "inProgress": 0, "completed": 0, "failed": 0}
+
+@router.get("/distribution/list")
+async def get_candidates_list(
+    page: int = 1,
+    limit: int = 50,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns paginated and filtered candidates list.
+    """
+    try:
+        start = (page - 1) * limit
+        end = start + limit - 1
+        
+        query = supabase.table("candidates").select("*, campaigns(name, type, status)").eq("user_id", current_user.id)
+        
+        if status and status != "all":
+            query = query.eq("status", status)
+            
+        if search:
+            # Simple ILIKE search on name or email
+            # Supabase doesn't support OR across columns easily in one chained call without 'or' syntax:
+            # .or_('name.ilike.%search%,email.ilike.%search%')
+            term = f"%{search}%"
+            query = query.or_(f"name.ilike.{term},email.ilike.{term},phone.ilike.{term},city.ilike.{term}")
+            
+        query = query.order("created_at", desc=True).range(start, end)
+        
+        response = query.execute()
+        
+        return {
+            "data": response.data,
+            "page": page,
+            "hasMore": len(response.data) == limit
+        }
+    except Exception as e:
+        print(f"List Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

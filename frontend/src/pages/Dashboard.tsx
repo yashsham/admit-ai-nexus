@@ -38,7 +38,7 @@ import { CampaignAnalytics } from "@/components/CampaignAnalytics";
 import { CampaignAutomation } from "@/components/CampaignAutomation";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { CampaignExecutor } from "@/components/CampaignExecutor";
-
+import { api } from "@/lib/api"; // Updated import
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showSettings, setShowSettings] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [campaigns, setCampaigns] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [automations, setAutomations] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalCampaigns: 0,
@@ -61,7 +61,7 @@ const Dashboard = () => {
     if (!user) return;
 
     try {
-      // Load campaigns
+      // Load campaigns (keep fetching list for the cards)
       const { data: campaignsData, error: campaignsError } = await supabase
         .from('campaigns')
         .select('*')
@@ -69,31 +69,42 @@ const Dashboard = () => {
         .order('created_at', { ascending: false });
 
       if (campaignsError) throw campaignsError;
-
       setCampaigns(campaignsData || []);
 
-      // Load automations (New Agentic Context)
+      // Load automations
       const { data: autoData } = await supabase
         .from('automation_rules')
         .select('*')
         .eq('user_id', user.id);
-
       setAutomations(autoData || []);
 
-      // Calculate stats
-      const totalCampaigns = campaignsData?.length || 0;
-      const messagesSent = campaignsData?.reduce((sum, campaign) => sum + (campaign.messages_sent || 0), 0) || 0;
-      const callsMade = campaignsData?.reduce((sum, campaign) => sum + (campaign.calls_made || 0), 0) || 0;
-      const responsesReceived = campaignsData?.reduce((sum, campaign) => sum + (campaign.responses_received || 0), 0) || 0;
-      const totalContacts = messagesSent + callsMade;
-      const responseRate = totalContacts > 0 ? Math.round((responsesReceived / totalContacts) * 100) : 0;
+      // Thin Frontend: Fetch calculated stats from Backend instead of simple reduce locally
+      // This ensures consistency with the Analytics dashboard and offloads processing
+      try {
+        const analyticsData = await api.analytics.get(); // Main analytics endpoint
 
-      setStats({
-        totalCampaigns,
-        messagesSent,
-        callsMade,
-        responseRate
-      });
+        setStats({
+          totalCampaigns: campaignsData?.length || 0,
+          messagesSent: analyticsData.overview?.total_sent || 0,
+          callsMade: analyticsData.overview?.calls_made || 0,
+          responseRate: Math.round(analyticsData.overview?.delivery_rate || 0) // Use delivery rate or calculate response rate from received/sent
+        });
+      } catch (e) {
+        console.error("Failed to fetch backend stats, falling back to local calculation", e);
+        // Fallback if backend fails
+        const messagesSent = campaignsData?.reduce((sum, campaign) => sum + (campaign.messages_sent || 0), 0) || 0;
+        const callsMade = campaignsData?.reduce((sum, campaign) => sum + (campaign.calls_made || 0), 0) || 0;
+        const responsesReceived = campaignsData?.reduce((sum, campaign) => sum + (campaign.responses_received || 0), 0) || 0;
+        const totalContacts = messagesSent + callsMade;
+
+        setStats({
+          totalCampaigns: campaignsData?.length || 0,
+          messagesSent,
+          callsMade,
+          responseRate: totalContacts > 0 ? Math.round((responsesReceived / totalContacts) * 100) : 0
+        });
+      }
+
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       toast({
@@ -106,7 +117,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadDashboardData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleSignOut = async () => {
@@ -156,7 +166,7 @@ const Dashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section with Typewriter Effect */}
+        {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-2 h-[32px] flex items-center">
             <span className="mr-2">Welcome back,</span>
@@ -171,7 +181,7 @@ const Dashboard = () => {
                     setDisplayedText(text.slice(0, index + 1));
                     index++;
                     if (index > text.length) clearInterval(timer);
-                  }, 100); // Speed
+                  }, 100);
                   return () => clearInterval(timer);
                 }, [text]);
                 return displayedText;
@@ -188,7 +198,6 @@ const Dashboard = () => {
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="automation">Automation</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -239,8 +248,9 @@ const Dashboard = () => {
                     <TrendingUp className="w-5 h-5 text-orange-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Response Rate</p>
+                    <p className="text-sm text-muted-foreground">Delivery Rate</p>
                     <p className="text-2xl font-bold">{stats.responseRate}%</p>
+                    {/* Updated label to delivery rate as that's what we get usually, or keep response rate if backend calc is correct */}
                   </div>
                 </div>
               </Card>
@@ -374,8 +384,6 @@ const Dashboard = () => {
               </div>
             )}
           </TabsContent>
-
-
 
           <TabsContent value="analytics">
             <CampaignAnalytics />

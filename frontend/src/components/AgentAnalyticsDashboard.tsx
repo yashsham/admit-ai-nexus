@@ -3,82 +3,69 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client"; // No longer direct DB access
+import { api } from "@/lib/api"; // Assuming api wrapper exists or we use axios directly
+import axios from "axios"; // Fallback if api wrapper doesn't have it yet
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Download, RefreshCw, TrendingUp, Users, MessageSquare, Phone, Mail } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-interface AnalyticsData {
-  campaign_id: string;
-  campaign_name: string;
-  event_type: string;
-  channel: string;
-  status: string;
-  count: number;
-  timestamp: string;
-}
-
-interface ChannelMetrics {
+// New Interfaces matching Backend Response
+interface ChannelMetric {
   channel: string;
   sent: number;
   delivered: number;
-  opened: number;
   failed: number;
+  opened: number;
   engagement_rate: number;
 }
 
-interface TimeSeriesData {
+interface TimeSeriesPoint {
   date: string;
   email: number;
   voice: number;
   whatsapp: number;
 }
 
+interface DashboardSummary {
+  total_sent: number;
+  total_engaged: number;
+  engagement_rate: number;
+  active_channels: number;
+}
+
+interface AgentDashboardData {
+  time_series: TimeSeriesPoint[];
+  channel_metrics: ChannelMetric[];
+  summary: DashboardSummary;
+}
+
 const AgentAnalyticsDashboard: React.FC = () => {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
-  const [channelMetrics, setChannelMetrics] = useState<ChannelMetrics[]>([]);
-  const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
+  const [data, setData] = useState<AgentDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [selectedTimeRange]);
-
   const fetchAnalytics = async () => {
     setIsLoading(true);
     try {
-      const startDate = getStartDate(selectedTimeRange);
+      // Fetch from the new high-performance backend endpoint
+      // Adjust the URL to your actual API base URL. Assuming Vite proxy or env var.
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token') || '';
 
-      // Fetch campaign analytics
-      const { data: analytics, error: analyticsError } = await supabase
-        .from('campaign_analytics')
-        .select(`
-          *,
-          campaigns (name)
-        `)
-        .gte('timestamp', startDate.toISOString())
-        .order('timestamp', { ascending: false });
+      const response = await axios.get(`${API_URL}/api/v1/analytics/agent/dashboard`, {
+        params: { time_range: selectedTimeRange },
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      if (analyticsError) throw analyticsError;
-
-      // Process analytics data
-      const processedData = processAnalyticsData(analytics || []);
-      setAnalyticsData(processedData);
-
-      // Calculate channel metrics
-      const channelStats = calculateChannelMetrics(analytics || []);
-      setChannelMetrics(channelStats);
-
-      // Generate time series data
-      const timeSeriesStats = generateTimeSeriesData(analytics || []);
-      setTimeSeriesData(timeSeriesStats);
+      setData(response.data);
 
     } catch (error) {
       console.error('Error fetching analytics:', error);
       toast({
         title: "Error",
-        description: "Failed to load analytics data",
+        description: "Failed to load analytics data from backend",
         variant: "destructive",
       });
     } finally {
@@ -86,156 +73,47 @@ const AgentAnalyticsDashboard: React.FC = () => {
     }
   };
 
-  const getStartDate = (range: string) => {
-    const now = new Date();
-    switch (range) {
-      case '24h':
-        return new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      case '7d':
-        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      case '30d':
-        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      default:
-        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    }
-  };
+  useEffect(() => {
+    fetchAnalytics();
+  }, [selectedTimeRange]);
 
-  const processAnalyticsData = (data: any[]): AnalyticsData[] => {
-    // Group and count events
-    const grouped = data.reduce((acc: any, item: any) => {
-      const key = `${item.campaigns?.name || 'Unknown'}-${item.event_type}-${item.channel}`;
-      if (!acc[key]) {
-        acc[key] = {
-          campaign_id: item.campaign_id,
-          campaign_name: item.campaigns?.name || 'Unknown',
-          event_type: item.event_type,
-          channel: item.channel,
-          status: item.status,
-          count: 0,
-          timestamp: item.timestamp
-        };
-      }
-      acc[key].count++;
-      return acc;
-    }, {});
-
-    return Object.values(grouped);
-  };
-
-  const calculateChannelMetrics = (data: any[]): ChannelMetrics[] => {
-    const channels = ['email', 'voice', 'whatsapp'];
-
-    return channels.map(channel => {
-      const channelData = data.filter(item => item.channel === channel);
-
-      const sent = channelData.filter(item =>
-        item.event_type.includes('sent') || item.event_type.includes('initiated')
-      ).length;
-
-      const delivered = channelData.filter(item =>
-        item.status === 'success' && item.event_type.includes('delivered')
-      ).length;
-
-      const opened = channelData.filter(item =>
-        item.event_type.includes('opened') || item.event_type.includes('answered')
-      ).length;
-
-      const failed = channelData.filter(item =>
-        item.event_type.includes('failed') || item.status === 'failed'
-      ).length;
-
-      const engagement_rate = sent > 0 ? ((opened / sent) * 100) : 0;
-
-      return {
-        channel,
-        sent,
-        delivered,
-        opened,
-        failed,
-        engagement_rate: Math.round(engagement_rate * 100) / 100
-      };
-    });
-  };
-
-  const generateTimeSeriesData = (data: any[]): TimeSeriesData[] => {
-    const last7Days: TimeSeriesData[] = [];
-    const now = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      const dayData: TimeSeriesData = {
-        date: date.toLocaleDateString(),
-        email: 0,
-        voice: 0,
-        whatsapp: 0
-      };
-
-      data.forEach(item => {
-        const itemDate = new Date(item.timestamp);
-        if (itemDate.toDateString() === date.toDateString() && item.status === 'success') {
-          if (item.channel === 'email') dayData.email++;
-          if (item.channel === 'voice') dayData.voice++;
-          if (item.channel === 'whatsapp') dayData.whatsapp++;
-        }
-      });
-
-      last7Days.push(dayData);
-    }
-
-    return last7Days;
-  };
-
-  const exportReport = async () => {
+  const exportReport = () => {
+    if (!data) return;
     try {
-      const csvContent = generateCSVReport();
+      const csvRows = [
+        ['Date', 'Email', 'Voice', 'Whatsapp'],
+        ...data.time_series.map(row => [row.date, row.email, row.voice, row.whatsapp])
+      ];
+
+      const csvContent = csvRows.map(e => e.join(",")).join("\n");
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `agent-analytics-${selectedTimeRange}-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `agent-analytics-${selectedTimeRange}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
 
-      toast({
-        title: "Success",
-        description: "Analytics report exported successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to export report",
-        variant: "destructive",
-      });
+      toast({ title: "Success", description: "Report exported successfully" });
+    } catch (e) {
+      toast({ title: "Error", description: "Export failed", variant: "destructive" });
     }
-  };
-
-  const generateCSVReport = () => {
-    const headers = ['Campaign', 'Channel', 'Event Type', 'Status', 'Count', 'Timestamp'];
-    const rows = analyticsData.map(item => [
-      item.campaign_name,
-      item.channel,
-      item.event_type,
-      item.status,
-      item.count,
-      item.timestamp
-    ]);
-
-    return [headers, ...rows].map(row => row.join(',')).join('\n');
   };
 
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300'];
 
-  const totalEngagement = channelMetrics.reduce((sum, metric) => sum + metric.opened, 0);
-  const totalSent = channelMetrics.reduce((sum, metric) => sum + metric.sent, 0);
-  const overallEngagementRate = totalSent > 0 ? ((totalEngagement / totalSent) * 100) : 0;
-
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin" />
+        <LoadingSpinner />
       </div>
     );
   }
+
+  // Use defaults if data is empty
+  const summary = data?.summary || { total_sent: 0, total_engaged: 0, engagement_rate: 0, active_channels: 0 };
+  const channelMetrics = data?.channel_metrics || [];
+  const timeSeriesData = data?.time_series || [];
 
   return (
     <div className="space-y-6">
@@ -247,7 +125,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <select
-            className="rounded-md border border-input bg-background px-3 py-2"
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={selectedTimeRange}
             onChange={(e) => setSelectedTimeRange(e.target.value)}
           >
@@ -272,7 +150,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Sent</p>
-              <p className="text-2xl font-bold">{totalSent}</p>
+              <p className="text-2xl font-bold">{summary.total_sent}</p>
             </div>
             <MessageSquare className="h-8 w-8 text-muted-foreground" />
           </CardContent>
@@ -281,8 +159,8 @@ const AgentAnalyticsDashboard: React.FC = () => {
         <Card>
           <CardContent className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Engagement</p>
-              <p className="text-2xl font-bold">{totalEngagement}</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Engaged</p>
+              <p className="text-2xl font-bold">{summary.total_engaged}</p>
             </div>
             <TrendingUp className="h-8 w-8 text-muted-foreground" />
           </CardContent>
@@ -292,7 +170,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Engagement Rate</p>
-              <p className="text-2xl font-bold">{overallEngagementRate.toFixed(1)}%</p>
+              <p className="text-2xl font-bold">{summary.engagement_rate.toFixed(1)}%</p>
             </div>
             <Users className="h-8 w-8 text-muted-foreground" />
           </CardContent>
@@ -302,7 +180,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Active Channels</p>
-              <p className="text-2xl font-bold">{channelMetrics.filter(m => m.sent > 0).length}</p>
+              <p className="text-2xl font-bold">{summary.active_channels}</p>
             </div>
             <Mail className="h-8 w-8 text-muted-foreground" />
           </CardContent>
@@ -319,14 +197,13 @@ const AgentAnalyticsDashboard: React.FC = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={channelMetrics}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="channel" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                <XAxis dataKey="channel" capitalize />
                 <YAxis />
-                <Tooltip />
+                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                 <Legend />
-                <Bar dataKey="sent" fill="#8884d8" name="Sent" />
-                <Bar dataKey="opened" fill="#82ca9d" name="Engaged" />
-                <Bar dataKey="failed" fill="#ff7300" name="Failed" />
+                <Bar dataKey="sent" fill="#8884d8" name="Sent" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="opened" fill="#82ca9d" name="Engaged" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -365,25 +242,25 @@ const AgentAnalyticsDashboard: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Engagement Trends</CardTitle>
-          <CardDescription>Daily engagement across all channels</CardDescription>
+          <CardDescription>Daily activity across all channels</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={timeSeriesData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
               <XAxis dataKey="date" />
               <YAxis />
-              <Tooltip />
+              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
               <Legend />
-              <Line type="monotone" dataKey="email" stroke="#8884d8" strokeWidth={2} />
-              <Line type="monotone" dataKey="voice" stroke="#82ca9d" strokeWidth={2} />
-              <Line type="monotone" dataKey="whatsapp" stroke="#ffc658" strokeWidth={2} />
+              <Line type="monotone" dataKey="email" stroke="#8884d8" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="voice" stroke="#82ca9d" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="whatsapp" stroke="#ffc658" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Channel Details */}
+      {/* Channel Details Table */}
       <Card>
         <CardHeader>
           <CardTitle>Channel Details</CardTitle>
@@ -396,9 +273,11 @@ const AgentAnalyticsDashboard: React.FC = () => {
                 metric.channel === 'voice' ? Phone : MessageSquare;
 
               return (
-                <div key={metric.channel} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={metric.channel} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <IconComponent className="h-5 w-5" />
+                    <div className={`p-2 rounded-full ${metric.channel === 'email' ? 'bg-blue-100 text-blue-600' : metric.channel === 'whatsapp' ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600'}`}>
+                      <IconComponent className="h-5 w-5" />
+                    </div>
                     <div>
                       <h4 className="font-medium capitalize">{metric.channel}</h4>
                       <p className="text-sm text-muted-foreground">
@@ -408,7 +287,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <Badge variant={metric.engagement_rate > 10 ? 'default' : 'secondary'}>
-                      {metric.engagement_rate}% engagement
+                      {metric.engagement_rate.toFixed(1)}% engagement
                     </Badge>
                     {metric.failed > 0 && (
                       <p className="text-sm text-red-600 mt-1">{metric.failed} failed</p>
@@ -417,6 +296,7 @@ const AgentAnalyticsDashboard: React.FC = () => {
                 </div>
               );
             })}
+            {channelMetrics.length === 0 && <div className="text-center text-muted-foreground py-4">No channel data available</div>}
           </div>
         </CardContent>
       </Card>

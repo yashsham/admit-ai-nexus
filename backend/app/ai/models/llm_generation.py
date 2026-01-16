@@ -1,7 +1,7 @@
 from app.core.config import settings
 from app.ai.models.llm_factory import get_llm_with_fallback
 
-async def generate_personalized_content(candidate: dict, prompt: str, channel: str, verified_link: str = None) -> str:
+async def generate_personalized_content(candidate: dict, prompt: str, channel: str, verified_link: str = None, sender_name: str = "Admit AI Team") -> str:
     """
     Generates a unique message for a specific candidate based on the user's prompt.
     ASYNC version to support proper event loop usage in FastAPI.
@@ -29,22 +29,24 @@ async def generate_personalized_content(candidate: dict, prompt: str, channel: s
         
         Campaign Goal: "{prompt}"
         Verified Official Link: "{verified_link if verified_link else '[Insert Link]'}"
+        Sender Name: "{sender_name}"
 
         Instructions:
         1. **Analyze the Goal**: specific tone and structure should be dictated by the "Campaign Goal". 
            - If it's an event invite -> Be exciting and clear.
            - If it's a newsletter -> Be informative and structured.
            - If it's a personal outreach -> Be warm and conversational.
-        2. **Style & Tone**: Adaptive. Use your creativity to choose the best approach. Do NOT rigidly follow a single "Direct Response" formula unless it fits.
-        3. **Formatting Capabilities**:
+        2. **Style & Tone**: Adaptive. Use your creativity to choose the best approach. 
+        3. **High Variety**: Do NOT use a standard "I hope you are doing well" opening. Vary your sentence structure.
+        4. **Formatting Capabilities**:
            - You have full HTML capabilities for the `BODY`.
-           - **Use `<h2>`** for headlines if the email needs a strong opening.
-           - **Use `<ul>/<li>`** for lists if you are presenting multiple benefits or details.
+           - **Use `<h2>`** for headlines.
+           - **Use `<ul>/<li>`** for lists.
            - **Use `<b>`** to highlight key details.
-           - **Use `<br><br>`** for whitespace.
-           - *Decision*: If a simple text email is better for the goal, use simple paragraphs. If a rich marketing email is better, use the HTML tags.
-        4. **Verified Link**:
-           - You MUST include the "Verified Official Link" provided above (`{verified_link}`) in your Call to Action or relevant section.
+        5. **Strict Rules**:
+           - **Do NOT** use placeholders like "[Your Name]".
+           - **Sign off explicitly** as: "Best regards, <br>{sender_name}".
+           - **MUST include** the "Verified Official Link" ({verified_link}) in the Call to Action.
            
         Format Requirements:
         - **DO NOT RETURN JSON**.
@@ -56,7 +58,7 @@ async def generate_personalized_content(candidate: dict, prompt: str, channel: s
 
     elif channel == "whatsapp":
         system_instruction = f"""
-        You are a top-tier WhatsApp Marketing Strategist. 
+        You are {sender_name}, a top-tier WhatsApp Marketing Strategist. 
         Your goal is to write a **detailed, engaging, and personal** message to a student.
 
         Recipient Profile:
@@ -66,24 +68,22 @@ async def generate_personalized_content(candidate: dict, prompt: str, channel: s
         
         Campaign Goal: "{prompt}"
         Verified Link: "{verified_link if verified_link else '[Link]'}"
+        Sender Name: "{sender_name}"
 
         Instructions:
         1. **Style**: 
-           - **Conversational & Rich**: Do NOT write short 160-char SMS style. Write like a thoughtful email but optimized for chat.
-           - **Tone**: Warm, helpful, and professional.
-           - **Formatting**: Use WhatsApp formatting:
-             - *Bold* text using asterisks (e.g., *Headline*).
-             - _Italic_ text using underscores.
-             - Bullet points using emojis substitute (e.g., [Benefit], [Value]).
-             - Paragraph spacing (double newlines) is CRITICAL for readability.
+           - **Conversational & Rich**: Do NOT write short 160-char SMS style. 
+           - **Tone**: Personalized, warm, and professional.
+           - **Formatting**: Use *Bold*, _Italic_, and bullet emojis.
         2. **Structure**:
            - **Opening**: Personal greeting + warm hook (mention {city}!).
-           - **Core Value**: 2-3 short paragraphs explaining why {course} is the right move.
-           - **Key Highlights**: An emoji list of 3 benefits.
-           - **Call to Action**: Direct invitation to click the link.
-        3. **Uniqueness**:
-           - Ask a question or mention a specific detail about {city} to make it feel 1-to-1.
-           - VARY your opening and closing for every single generation.
+           - **Core Value**: Why {course} is great.
+           - **Call to Action**: Click the link.
+        3. **High Variety**:
+           - VARY your opening. Do not use the same hook line twice.
+        4. **Strict Rules**:
+            - **Do NOT** use placeholders like "[Your Name]".
+            - Sign off simply with "- {sender_name}".
 
         Format Requirements:
         - Output **ONLY** the raw message text.
@@ -93,20 +93,19 @@ async def generate_personalized_content(candidate: dict, prompt: str, channel: s
         """
     else:
         system_instruction = f"""
-        You are an expert Admissions Counselor. 
+        You are {sender_name}, an expert Admissions Counselor. 
         Your goal is to write a SHORT, Personalized {channel} message.
         
         Recipient Profile:
         - Name: {name}
-        - City: {city}
         - Interest: {course}
         
         User Instructions: "{prompt}"
         
         Constraints:
-        - Strict limit: Under 160 characters for WhatsApp, under 50 words for Voice status.
-        - No emojis unless asked.
-        - RETURN ONLY THE MESSAGE CONTENT. Do not include "Here is the message:" or quotes.
+        - Strict limit: Under 160 characters.
+        - No placeholders. 
+        - Sign off as {sender_name}.
         """
     
     try:

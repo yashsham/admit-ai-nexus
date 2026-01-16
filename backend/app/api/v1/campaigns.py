@@ -69,7 +69,7 @@ async def process_recipient(recipient: dict, campaign_id: str, channels: list, c
                 logging.info(f"Verified Link Found: {verified_link}")
                 
                 # ASYNC Generation Call
-                generated_response = await generate_personalized_content(recipient, ai_prompt, primary_channel, verified_link)
+                generated_response = await generate_personalized_content(recipient, ai_prompt, primary_channel, verified_link, sender_name=campaign_data.get("sender_name", "Admit AI Team"))
                     
                 email_msg = generated_response
                 whatsapp_msg = generated_response
@@ -156,6 +156,18 @@ async def run_campaign_execution(campaign_id: str, campaign_data: dict = None, r
             campaign_data = res.data
         
         if not recipients:
+            # Fetch Sender Name (Profile or Default)
+            sender_name = "Admit AI Team"
+            owner_id = campaign_data.get("user_id")
+            if owner_id:
+                try:
+                    p_res = supabase.table("profiles").select("display_name").eq("user_id", owner_id).single().execute()
+                    if p_res.data and p_res.data.get("display_name"):
+                        sender_name = p_res.data.get("display_name")
+                except: pass
+            
+            campaign_data["sender_name"] = sender_name
+
             meta = campaign_data.get("metadata", {}) or {}
             target_audience = meta.get("target_audience", "all")
             

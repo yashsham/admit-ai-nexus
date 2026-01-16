@@ -59,6 +59,27 @@ async def chat_endpoint(request: Request, body: ChatRequest, current_user: Optio
         # ----------------------------------------------------
         # DSA Optimization: Caching identical queries (O(1))
         # ----------------------------------------------------
+        
+        # WORKFLOW INTERCEPTION start
+        # Check if this is a Campaign Creation step
+        from app.workflows.campaign_chat import CampaignChatWorkflow
+        
+        # Determine User ID
+        uid = current_user.id if current_user else (body.user_id or "public_guest")
+        
+        # Initialize Workflow
+        campaign_workflow = CampaignChatWorkflow(user_id=uid)
+        
+        # Check for active state or trigger phrase
+        wf_response = await campaign_workflow.process_message(body.message)
+        
+        if wf_response:
+            # If workflow handled it, return immediately
+            async def wf_gen():
+                yield wf_response
+            return StreamingResponse(wf_gen(), media_type="text/plain")
+        # WORKFLOW INTERCEPTION end
+
         # We hash the message + context to create a reliable key
         query_hash = hashlib.md5((body.message + body.context + str(body.dashboard_context)).encode()).hexdigest()
         cache_key = f"llm_response:{query_hash}"

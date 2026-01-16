@@ -84,6 +84,13 @@ class CacheService:
                 await self.redis.set(key, json.dumps(value), ex=ttl)
             except Exception: pass
 
+    async def delete(self, key: str):
+        self.memory_cache.delete(key)
+        if self.use_redis:
+            try:
+                await self.redis.delete(key)
+            except Exception: pass
+
     async def invalidate(self, pattern: str):
         # Hard to do pattern match on dict efficiently without O(N) scan
         # For memory cache, we'll just clear simplistic matches or everything dependent on implementation

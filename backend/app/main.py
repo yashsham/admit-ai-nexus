@@ -16,6 +16,8 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.api.v1.router import api_router
 from app.ai.tools.tools import scheduler
+from fastapi import WebSocket
+from app.services.voice_agent.ws_audio import audio_ws_handler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -76,6 +78,10 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/")
 async def root():
     return {"message": "Admit AI Nexus Backend is Running", "docs": "/docs"}
+
+@app.websocket("/ws/audio")
+async def audio_ws(ws: WebSocket):
+    await audio_ws_handler(ws)
 
 # Static Files (Frontend)
 if os.path.exists("../dist"):

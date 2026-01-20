@@ -268,13 +268,13 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None)
 
 # --- Voice Call (Placeholder for Retell / Bland AI) ---
 # --- Voice Call (Retell AI) ---
-def make_voice_call(to_number: str, context_variables: dict = None) -> str:
+# --- Voice Call (Asterisk/SIP) ---
+async def make_voice_call(to_number: str, context_variables: dict = None) -> str:
     """
-    Initiates a voice call using Retell AI.
-    Requires RETELL_API_KEY and RETELL_AGENT_ID defined in environment.
+    Initiates a voice call using Asterisk AMI.
+    Replaces Retell AI.
     """
-    RETELL_API_KEY = settings.RETELL_API_KEY
-    RETELL_AGENT_ID = settings.RETELL_AGENT_ID
+    from app.services.asterisk_service import asterisk_service
     
     # 0. Check Limits
     user_id = "default_user"
@@ -282,47 +282,21 @@ def make_voice_call(to_number: str, context_variables: dict = None) -> str:
     if not subscription_service.check_usage(user_id, "voice_calls"):
              return "failed_limit_reached_upgrade_plan"
     
-    if not RETELL_API_KEY or not RETELL_AGENT_ID:
-        print(f"[MOCK] Voice Call to {to_number} | Context: {context_variables}")
-        return "mock_success_no_credentials"
-    
     try:
-        url = "https://api.retellai.com/v2/create-phone-call"
-        headers = {
-            "Authorization": f"Bearer {RETELL_API_KEY}",
-            "Content-Type": "application/json"
-        }
+        # Context variables can be passed as channel vars to Asterisk
+        # e.g. {'campaign_id': '123'} -> PJSIP header or channel variable
+        result = await asterisk_service.initiate_call(
+            to_number=to_number,
+            channel_vars=context_variables
+        )
         
-        # NOTE: Retell requires a 'from_number' if the agent doesn't have one bounded?
-        # Docs say: "from_number": "..."
-        # We will try omitting it if the agent has a number, or use a placeholder to catch error.
-        
-        payload = {
-            "agent_id": RETELL_AGENT_ID,
-            "to_number": to_number,
-            "retell_llm_dynamic_variables": context_variables or {}
-        }
-        
-        # If user hardcoded a number in env?
-        from_num = os.getenv("RETELL_FROM_NUMBER")
-        if from_num:
-            payload["from_number"] = from_num
-
-        print(f"[Retell] Initiating call to {to_number} using Agent {RETELL_AGENT_ID}...")
-        response = requests.post(url, headers=headers, json=payload)
-        
-        if response.status_code == 201 or response.status_code == 200:
-            data = response.json()
-            call_id = data.get("call_id")
-            print(f"[Retell] Success! Call ID: {call_id}")
+        if "success" in result:
             subscription_service.log_usage(user_id, "voice_calls", 1)
-            return f"call_initiated_{call_id}"
-        else:
-            print(f"[Retell] Failed: {response.text}")
-            return f"error_retell_{response.status_code}_{response.text}"
+            
+        return result
             
     except Exception as e:
-        print(f"[Retell] Exception: {e}")
+        print(f"[Asterisk] Exception: {e}")
         return f"error_{str(e)}"
 
 # --- Scheduler ---

@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_ID: Optional[str] = os.getenv("RAZORPAY_KEY_ID")
     RAZORPAY_KEY_SECRET: Optional[str] = os.getenv("RAZORPAY_KEY_SECRET")
 
+    # Asterisk (Voice)
+    ASTERISK_HOST: Optional[str] = os.getenv("ASTERISK_HOST")
+    ASTERISK_PORT: Optional[int] = os.getenv("ASTERISK_PORT")
+    ASTERISK_USER: Optional[str] = os.getenv("ASTERISK_USER")
+    ASTERISK_PASS: Optional[str] = os.getenv("ASTERISK_PASS")
+
     class Config:
         env_file = ".env"
         case_sensitive = True

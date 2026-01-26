@@ -40,3 +40,4 @@ webrtcvad-wheels
 websockets
 soundfile
 numpy
+openai-whisper

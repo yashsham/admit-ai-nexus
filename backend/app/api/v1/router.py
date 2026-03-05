@@ -9,8 +9,9 @@ api_router.include_router(candidates.router, prefix="/candidates", tags=["candid
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(misc.router, tags=["misc"])
 api_router.include_router(billing.router, prefix="/billing", tags=["billing"])
-from app.api.v1 import chat
+from app.api.v1 import chat, voice_calls
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
+api_router.include_router(voice_calls.router, prefix="/voice-calls", tags=["voice-calls"])
 
 from app.api.v1 import inbound_webhook
 api_router.include_router(inbound_webhook.router, tags=["webhooks"])

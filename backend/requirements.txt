@@ -40,3 +40,4 @@ webrtcvad-wheels
 websockets
 soundfile
 numpy
+retell-sdk==0.1.1

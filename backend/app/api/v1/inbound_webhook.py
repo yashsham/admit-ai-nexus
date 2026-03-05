@@ -53,3 +53,42 @@ async def email_webhook(request: Request):
     except Exception as e:
         print(f"Email Webhook Error: {e}")
         return {"status": "error"}
+
+@router.post("/webhook/retell")
+async def retell_webhook(request: Request):
+    """
+    Receives Retell AI Webhook events (Call Completion, Transcripts).
+    """
+    try:
+        data = await request.json()
+        event = data.get("event")
+        call_data = data.get("call", {})
+        
+        if event == "call_ended":
+            call_id = call_data.get("call_id")
+            transcript = call_data.get("transcript", "")
+            metadata = call_data.get("metadata", {})
+            candidate_id = metadata.get("candidate_id")
+            
+            print(f"[Retell Webhook] Call ended for candidate {candidate_id}. Call ID: {call_id}")
+            
+            if candidate_id and transcript:
+                # Update candidate with transcript and analysis
+                # In a real app, you'd use LLM to analyze transcript for 'interested' flag
+                is_interested = "interested" in transcript.lower() or "yes" in transcript.lower()
+                
+                status = "Interested" if is_interested else "voice_called"
+                
+                from app.data.supabase_client import supabase
+                supabase.table("candidates").update({
+                    "status": status,
+                    "call_transcript": transcript,
+                    "response_received": True
+                }).eq("id", candidate_id).execute()
+                
+                print(f"[Retell Webhook] Updated candidate {candidate_id} status to {status}")
+
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"Retell Webhook Error: {e}")
+        return {"status": "error"}

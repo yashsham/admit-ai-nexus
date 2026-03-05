@@ -79,6 +79,8 @@ export const DemoModal = ({ open, onOpenChange }: DemoModalProps) => {
                   <video
                     key={demoVideos[selectedVideo].url}
                     controls
+                    autoPlay
+                    muted
                     className="w-full h-full object-contain"
                     poster={demoVideos[selectedVideo].thumbnail}
                   >

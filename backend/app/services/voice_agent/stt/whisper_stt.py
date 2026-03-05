@@ -1,34 +1,52 @@
-import whisper
-import tempfile
-import numpy as np
-import soundfile as sf
+import os
+import io
+import wave
 import logging
+from groq import Groq
 
 logger = logging.getLogger(__name__)
 
-# Lazy load model to avoid blocking startup if possible, or load on import
-# For now, load on import as original
-try:
-    print("Loading Whisper model...")
-    model = whisper.load_model("tiny")
-    print("Whisper model loaded.")
-except Exception as e:
-    logger.error(f"Failed to load Whisper model: {e}")
-    model = None
+# Initialize Groq client
+client = None
+api_key = os.getenv("GROQ_API_KEY")
+if api_key:
+    try:
+        client = Groq(api_key=api_key)
+        print("Groq client for STT initialized.")
+    except Exception as e:
+        logger.error(f"Failed to initialize Groq client: {e}")
 
 def transcribe_pcm(pcm_bytes: bytes) -> str:
-    if not model:
+    """
+    Transcribes PCM bytes by converting to WAV and sending to Groq's Whisper API.
+    """
+    if not client:
+        logger.error("Groq client not initialized. Cannot transcribe.")
         return ""
     
     try:
-        # Convert PCM bytes to float32 numpy array
-        # Original: int16 -> float32 / 32768.0
-        audio = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        # Convert PCM to WAV format in memory for Groq API
+        buffer = io.BytesIO()
+        with wave.open(buffer, 'wb') as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2) # 16-bit
+            wf.setframerate(16000) # Match sample rate
+            wf.writeframes(pcm_bytes)
         
-        # Whisper can process numpy array directly
-        result = model.transcribe(audio, language="en", fp16=False)
+        buffer.seek(0)
+        # Give the buffer a name so Groq knows what kind of file it is
+        buffer.name = "audio.wav"
         
-        return result.get("text", "").strip()
+        # Use Groq's Whisper API
+        transcription = client.audio.transcriptions.create(
+            file=buffer,
+            model="whisper-large-v3",
+            language="en",
+            response_format="text",
+        )
+        
+        return str(transcription).strip()
     except Exception as e:
-        logger.error(f"Transcribe Error: {e}")
+        logger.error(f"Groq Transcribe Error: {e}")
         return ""
+

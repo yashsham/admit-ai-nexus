@@ -20,7 +20,7 @@ const Hero = ({ onWatchDemoClick, onScheduleDemoClick }: HeroProps) => {
     if (user) {
       navigate('/dashboard');
     } else {
-      // Direct to auth for sign up
+      // Direct to auth for sign up using hash routing compatibility
       navigate('/auth');
     }
   };

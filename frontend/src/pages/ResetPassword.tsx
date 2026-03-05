@@ -49,7 +49,7 @@ const ResetPassword = () => {
   }, [navigate, toast, token, tokenHash]);
 
   const handleVerify = async () => {
-    if ((!token && !tokenHash) || !email) return;
+    if (!token && !tokenHash) return;
     setIsVerifying(true);
     console.log("Verifying Identity with:", { token, tokenHash, email, type: 'recovery' });
 

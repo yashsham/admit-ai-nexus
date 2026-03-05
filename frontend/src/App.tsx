@@ -32,7 +32,8 @@ const App = () => {
 
   useEffect(() => {
     // Check if we are on the reset password page
-    const isResetPassword = window.location.pathname.includes("/reset-password");
+    const isResetPassword = window.location.pathname.includes("/reset-password") ||
+      window.location.hash.includes("/reset-password");
 
     if (isResetPassword) {
       // Skip splash screen entirely for reset password to avoid token expiry

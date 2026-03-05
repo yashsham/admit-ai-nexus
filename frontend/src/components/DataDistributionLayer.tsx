@@ -25,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client"; // 22
 import { Input } from "@/components/ui/input"; // 23
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // 24
 import axios from "axios";
+import { api } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 // 26
 interface CandidateData { // 26
@@ -173,6 +175,39 @@ const DataDistributionLayer = () => { // 51
       setIsDistributing(false); // 185
     } // 186
   }; // 187
+
+  const handleVoiceCall = async (candidate: CandidateData) => {
+    try {
+      setCallingId(candidate.id);
+      toast({
+        title: "Initiating Voice Call",
+        description: `Connecting AI Agent to ${candidate.name}...`,
+      });
+
+      const result = await api.voice.callCandidate(
+        candidate.id,
+        candidate.phone,
+        candidate.name
+      );
+
+      if (result.success) {
+        toast({
+          title: "Call Triggered",
+          description: `The AI agent is now calling ${candidate.name}.`,
+          className: "bg-green-50 border-green-200",
+        });
+        loadData(); // Refresh to show voice_called status
+      }
+    } catch (error: any) {
+      toast({
+        title: "Call Failed",
+        description: error.message || "Failed to trigger voice call. Please check your Retell configuration.",
+        variant: "destructive",
+      });
+    } finally {
+      setCallingId(null);
+    }
+  };
   // 188
   const validateCandidateData = (candidate: CandidateData) => { // 189
     const issues = []; // 190

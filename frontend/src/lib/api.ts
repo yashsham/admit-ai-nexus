@@ -151,5 +151,34 @@ export const api = {
 
             return response.json();
         }
+    },
+
+    voice: {
+        callCandidate: async (candidateId: string | null, phoneNumber: string, candidateName: string, context?: string, documentContent?: string) => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            const response = await fetch(`${API_BASE_URL}/voice-calls/call-candidate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    candidate_id: candidateId,
+                    phone_number: phoneNumber,
+                    candidate_name: candidateName,
+                    context: context,
+                    document_content: documentContent
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to trigger voice call');
+            }
+
+            return response.json();
+        }
     }
 };

@@ -7,18 +7,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, Phone, FileText, Bot, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 
 interface RetellAgentPanelProps {
   agentId?: string;
 }
 
-const RetellAgentPanel: React.FC<RetellAgentPanelProps> = ({ 
-  agentId = "agent_0b0a29061f41517a382a32035e" 
+const RetellAgentPanel: React.FC<RetellAgentPanelProps> = ({
+  agentId = "agent_0b0a29061f41517a382a32035e"
 }) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [candidateName, setCandidateName] = useState('Prospect');
   const [context, setContext] = useState('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [documentContent, setDocumentContent] = useState('');
@@ -37,7 +39,7 @@ const RetellAgentPanel: React.FC<RetellAgentPanelProps> = ({
       const reader = new FileReader();
       reader.onload = async (e) => {
         const content = e.target?.result as string;
-        
+
         if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
           setDocumentContent(content);
         } else {
@@ -45,13 +47,13 @@ const RetellAgentPanel: React.FC<RetellAgentPanelProps> = ({
           // For now, just use filename and basic info
           setDocumentContent(`Document: ${file.name} (${file.type})`);
         }
-        
+
         toast({
           title: "Document uploaded",
           description: `${file.name} has been processed for the call context.`,
         });
       };
-      
+
       if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
         reader.readAsText(file);
       } else {
@@ -82,33 +84,29 @@ const RetellAgentPanel: React.FC<RetellAgentPanelProps> = ({
     setIsCalling(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('retell-agent', {
-        body: {
-          phone_number: phoneNumber,
-          agent_id: agentId,
-          context: context,
-          document_content: documentContent
-        }
-      });
+      const result = await api.voice.callCandidate(
+        null, // No candidate ID for manual entry
+        phoneNumber,
+        candidateName,
+        context,
+        documentContent
+      );
 
-      if (error) throw error;
-
-      if (data.success) {
+      if (result.success) {
         toast({
           title: "Call initiated",
           description: `Call to ${phoneNumber} has been started successfully.`,
         });
-        
+
         // Reset form
         setPhoneNumber('');
+        setCandidateName('Prospect');
         setContext('');
         setUploadedFile(null);
         setDocumentContent('');
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-      } else {
-        throw new Error(data.error || 'Failed to initiate call');
       }
     } catch (error) {
       console.error('Error initiating call:', error);
@@ -143,7 +141,17 @@ const RetellAgentPanel: React.FC<RetellAgentPanelProps> = ({
                 onChange={(e) => setPhoneNumber(e.target.value)}
               />
             </div>
-            
+
+            <div className="space-y-2">
+              <Label htmlFor="candidateName">Candidate Name</Label>
+              <Input
+                id="candidateName"
+                placeholder="John Doe"
+                value={candidateName}
+                onChange={(e) => setCandidateName(e.target.value)}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="agent">Agent ID</Label>
               <Input
@@ -207,7 +215,7 @@ const RetellAgentPanel: React.FC<RetellAgentPanelProps> = ({
             </div>
           )}
 
-          <Button 
+          <Button
             onClick={initiateCall}
             disabled={isCalling || !phoneNumber}
             className="w-full"

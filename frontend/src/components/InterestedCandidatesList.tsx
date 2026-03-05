@@ -8,6 +8,8 @@ import { MessageSquare, Mail, Phone, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 interface Candidate {
     id: string;
@@ -22,6 +24,7 @@ interface Candidate {
 export const InterestedCandidatesList = () => {
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [loading, setLoading] = useState(true);
+    const [callingId, setCallingId] = useState<string | null>(null);
     const { toast } = useToast();
 
     const fetchInterestedCandidates = async () => {
@@ -71,6 +74,39 @@ export const InterestedCandidatesList = () => {
             window.open(`mailto:${contact}`);
         } else {
             window.open(`https://wa.me/${contact.replace(/\D/g, '')}`);
+        }
+    };
+
+    const handleVoiceCall = async (candidate: Candidate) => {
+        try {
+            setCallingId(candidate.id);
+            toast({
+                title: "Initiating Voice Call",
+                description: `Connecting AI Agent to ${candidate.name}...`,
+            });
+
+            const result = await api.voice.callCandidate(
+                candidate.id,
+                candidate.phone,
+                candidate.name
+            );
+
+            if (result.success) {
+                toast({
+                    title: "Call Triggered",
+                    description: `The AI agent is now calling ${candidate.name}.`,
+                    className: "bg-green-50 border-green-200",
+                });
+                fetchInterestedCandidates(); // Refresh to show voice_called status if it updates quickly
+            }
+        } catch (error: any) {
+            toast({
+                title: "Call Failed",
+                description: error.message || "Failed to trigger voice call. Please check your Retell configuration.",
+                variant: "destructive",
+            });
+        } finally {
+            setCallingId(null);
         }
     };
 
@@ -140,6 +176,20 @@ export const InterestedCandidatesList = () => {
                                             {candidate.phone && (
                                                 <Button variant="ghost" size="sm" onClick={() => handleContact('whatsapp', candidate.phone)}>
                                                     <MessageSquare className="w-4 h-4 text-green-500" />
+                                                </Button>
+                                            )}
+                                            {candidate.phone && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleVoiceCall(candidate)}
+                                                    disabled={callingId === candidate.id}
+                                                >
+                                                    {callingId === candidate.id ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
+                                                    ) : (
+                                                        <Phone className="w-4 h-4 text-orange-500" />
+                                                    )}
                                                 </Button>
                                             )}
                                         </div>

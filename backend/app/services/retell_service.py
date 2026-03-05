@@ -8,7 +8,7 @@ class RetellService:
         self.agent_id = settings.RETELL_AGENT_ID
         self.base_url = "https://api.retellai.com"
 
-    def trigger_outbound_call(self, phone_number: str, candidate_name: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def trigger_outbound_call(self, phone_number: str, candidate_name: str, context: Optional[str] = None, document_content: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Triggers an outbound call using Retell AI.
         """
@@ -31,7 +31,9 @@ class RetellService:
             "to_number": phone_number,
             "override_agent_id": self.agent_id,
             "retell_llm_dynamic_variables": {
-                "customer_name": candidate_name
+                "customer_name": candidate_name,
+                "call_context": context or "",
+                "document_content": document_content or ""
             }
         }
         

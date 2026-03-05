@@ -18,7 +18,8 @@ import { // 7
   ArrowRight, // 18
   Activity, // 19
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Phone
 } from "lucide-react"; // 20
 import { useToast } from "@/hooks/use-toast"; // 21
 import { supabase } from "@/integrations/supabase/client"; // 22
@@ -69,6 +70,7 @@ const DataDistributionLayer = () => { // 51
   const [searchTerm, setSearchTerm] = useState(""); // 63
   const [statusFilter, setStatusFilter] = useState("all"); // 64
   const [isDistributing, setIsDistributing] = useState(false); // 65
+  const [callingId, setCallingId] = useState<string | null>(null);
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -405,6 +407,7 @@ const DataDistributionLayer = () => { // 51
                   <th className="text-left p-4">Status</th>
                   <th className="text-left p-4">Distribution</th>
                   <th className="text-left p-4">Validation</th>
+                  <th className="text-left p-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -497,6 +500,21 @@ const DataDistributionLayer = () => { // 51
                             <TooltipContent>Valid data</TooltipContent>
                           </Tooltip>
                         )}
+                      </td>
+                      <td className="p-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleVoiceCall(candidate)}
+                          disabled={callingId === candidate.id || !candidate.phone}
+                          title="Call Candidate"
+                        >
+                          {callingId === candidate.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
+                          ) : (
+                            <Phone className="w-4 h-4 text-orange-500" />
+                          )}
+                        </Button>
                       </td>
                     </tr>
                   );

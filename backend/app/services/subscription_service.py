@@ -43,7 +43,7 @@ class SubscriptionService:
         Fetches user plan from Supabase. Defaults to 'starter'.
         """
         try:
-            from app.services.supabase_client import supabase
+            from app.data.supabase_client import supabase
             res = supabase.table("subscriptions").select("plan_id, status").eq("user_id", user_id).execute()
             if res.data and len(res.data) > 0:
                 # check status?
@@ -69,7 +69,7 @@ class SubscriptionService:
         
         # Check current usage
         try:
-            from app.services.supabase_client import supabase
+            from app.data.supabase_client import supabase
             period = SubscriptionService.get_current_period_key()
             
             # Using RPC or manual sum? Manual sum for now (simpler logic, less SQL).
@@ -99,7 +99,7 @@ class SubscriptionService:
         Increments usage counter.
         """
         try:
-            from app.services.supabase_client import supabase
+            from app.data.supabase_client import supabase
             period = SubscriptionService.get_current_period_key()
             
             # Upsert Logic is tricky without a unique constraint on (user, feature, period).

@@ -39,7 +39,7 @@ logging.basicConfig(
 
 import concurrent.futures
 
-async def process_recipient(recipient: dict, campaign_id: str, channels: list, campaign_data: dict) -> dict:
+async def process_recipient(recipient: dict, campaign_id: str, channels: list, campaign_data: dict, user_id: str = "default_user") -> dict:
     """
     Helper function to process a single recipient for a campaign.
     Returns a dict with success/failure status.
@@ -98,7 +98,7 @@ async def process_recipient(recipient: dict, campaign_id: str, channels: list, c
         if ("whatsapp" in channels) and r_phone:
             try:
                 # TODO: If tools.send_whatsapp_message is slow, wrap in run_in_threadpool
-                wa_status = tools.send_whatsapp_message(r_phone, whatsapp_msg)
+                wa_status = tools.send_whatsapp_message(r_phone, whatsapp_msg, user_id=user_id)
                 
                 db_status = "delivered" if "sent" in wa_status else "failed"
                 supabase.table("campaign_executions").insert({
@@ -120,7 +120,7 @@ async def process_recipient(recipient: dict, campaign_id: str, channels: list, c
                 try:
                     logging.info(f"Sending Email to {r_email}...")
                     
-                    status = tools.send_email(r_email, email_subject, email_msg, html_content=email_msg)
+                    status = tools.send_email(r_email, email_subject, email_msg, html_content=email_msg, user_id=user_id)
                     logging.info(f"Email Status: {status}")
                     
                     db_status = "delivered" if "sent" in status else "failed"
@@ -220,7 +220,7 @@ async def run_campaign_execution(campaign_id: str, campaign_data: dict = None, r
         async def protected_process(recipient):
             async with semaphore:
                 try:
-                    result = await process_recipient(recipient, campaign_id, channels, campaign_data)
+                    result = await process_recipient(recipient, campaign_id, channels, campaign_data, user_id=campaign_data.get("user_id", "default_user"))
                     return result
                 except Exception as e:
                     logging.error(f"Error processing {recipient.get('email', 'unknown')}: {e}")

@@ -82,18 +82,13 @@ def send_whatsapp_twilio(to_number: str, message: str) -> str:
         return f"failed_twilio_{str(e)}"
 
 # --- WhatsApp (Strict Cloud API) ---
-def send_whatsapp_message(to_number: str, message: str) -> str:
+def send_whatsapp_message(to_number: str, message: str, user_id: str = "default_user") -> str:
     """
     Sends message via Official WhatsApp Cloud API.
     Strict Backend Implementation (No Deep Links).
     """
     try:
-        # 0. Check Usage Limit (Hardcoded user 'auto-agent' or derived context? For now check global/generic or pass user_id)
-        # Ideally, we need the user_id. Since these are tools called by Agent, we might need to inject user_id into context.
-        # For this iteration, we'll assume a single user context or retrieve from env/global for the 'owner'.
-        # Let's assume user_id="default_user" for single-tenant app or get from some context if possible.
-        user_id = "default_user" # Placeholder until we pass it dynamically
-        
+        # 0. Check Usage Limit
         from app.services.subscription_service import subscription_service
         if not subscription_service.check_usage(user_id, "whatsapp_msgs"):
              return "failed_limit_reached_upgrade_plan"
@@ -159,14 +154,13 @@ def send_whatsapp_message(to_number: str, message: str) -> str:
         return f"error_exception_{str(e)}"
 
 # --- Email (SendGrid / SMTP) ---
-def send_email(to_email: str, subject: str, body: str, html_content: str = None) -> str:
+def send_email(to_email: str, subject: str, body: str, html_content: str = None, user_id: str = "default_user") -> str:
     """
     Sends an email using standard SMTP (Gmail SSL) PRIORITY.
     Falls back to SendGrid if SMTP fails.
     """
     try:
         # 0. Check Usage Limit
-        user_id = "default_user" 
         from app.services.subscription_service import subscription_service
         if not subscription_service.check_usage(user_id, "email_sent"):
              return "failed_limit_reached_upgrade_plan"

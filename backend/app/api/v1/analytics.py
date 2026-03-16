@@ -162,126 +162,27 @@ async def get_agent_analytics(time_range: str = "7d", current_user: User = Depen
 @cache_response(ttl=60, key_prefix="analytics_main")
 async def get_analytics(campaign_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
     try:
-        # 1. Scope Validation: Fetch User's Campaigns
-        res_campaigns = supabase.table("campaigns").select("id").eq("user_id", current_user.id).execute()
-        user_campaign_ids = [c['id'] for c in res_campaigns.data] if res_campaigns.data else []
+        # Optimized V3: Move heavy aggregation to Database RPC
+        # This replaces ~10 concurrent O(1) count queries with 1 single RTT
+        params = {"target_user_id": current_user.id}
+        if campaign_id and campaign_id != "all":
+            params["filter_campaign_id"] = campaign_id
+            
+        rpc_response = await asyncio.to_thread(lambda: supabase.rpc("get_campaign_analytics_v3", params).execute())
         
-        # If user has no campaigns, return empty stats immediately
-        if not user_campaign_ids:
+        if not rpc_response.data:
             return {
                 "overview": {"total_sent": 0, "delivery_rate": 0, "active_campaigns": 0, "interested_candidates": 0, "calls_made": 0, "responses_received": 0},
                 "channel_stats": {}, "recent_failures": [], "recent_activity": []
             }
             
-        # If specific campaign requested, ensure ownership
-        target_cids = user_campaign_ids
-        if campaign_id and campaign_id != "all":
-            if campaign_id not in user_campaign_ids:
-                raise HTTPException(status_code=403, detail="Access denied to this campaign")
-            target_cids = [campaign_id]
-        
-        # 2. Optimized Queries with User Scope
-        
-        # Helper for scoped count using database-side aggregation (O(1))
-        def get_count_sync(table, extra_filters=None):
-            q = supabase.table(table).select("id", count="exact", head=True)
-            
-            if table == "campaign_executions":
-                q = q.in_("campaign_id", target_cids)
-            elif table == "candidates":
-                q = q.eq("user_id", current_user.id)
-            
-            if extra_filters:
-                for k, v in extra_filters.items():
-                    q = q.eq(k, v)
-                    
-            return q.execute()
-
-        # Concurrent Execution for maximum speed
-        # We define all our "futures" here
-        
-        # 1. Total Sent (Executions)
-        f_total = asyncio.to_thread(lambda: get_count_sync("campaign_executions"))
-        
-        # 2. Total Delivered
-        f_delivered = asyncio.to_thread(lambda: get_count_sync("campaign_executions", {"status": "delivered"}))
-        
-        # 3. Interested Candidates
-        f_interested = asyncio.to_thread(lambda: supabase.table("candidates").select("id", count="exact", head=True).eq("user_id", current_user.id).eq("status", "interested").execute())
-
-        # 4. Recent Failures (Data fetch, limit 10)
-        f_failures = asyncio.to_thread(lambda: supabase.table("campaign_executions")
-                .select("id, recipient, channel, status, executed_at, message_content, campaigns(name)")
-                .in_("campaign_id", target_cids)
-                .eq("status", "failed")
-                .order("executed_at", desc=True)
-                .limit(10).execute())
-
-        # 5. Recent Activity (Data fetch, limit 5)
-        f_recent = asyncio.to_thread(lambda: supabase.table("campaign_executions")
-                .select("id, status, channel, executed_at")
-                .in_("campaign_id", target_cids)
-                .order("executed_at", desc=True)
-                .limit(5).execute())
-        
-        # 6. Calls Made
-        f_calls = asyncio.to_thread(lambda: get_count_sync("campaign_executions", {"channel": "voice"})) # Count all voice attempts
-        
-        # 7. Responses Received
-        f_responses = asyncio.to_thread(lambda: supabase.table("candidates").select("id", count="exact", head=True).eq("user_id", current_user.id).eq("status", "responded").execute())
-
-
-        # Run the heavy hitters
-        results = await asyncio.gather(
-            f_total, f_delivered, f_interested, f_failures, f_recent,
-            f_calls, f_responses,
-            # Add channels inline for detailed breakdown
-            asyncio.to_thread(lambda: get_count_sync("campaign_executions", {"channel": "email", "status": "delivered"})),
-            asyncio.to_thread(lambda: get_count_sync("campaign_executions", {"channel": "email", "status": "failed"})),
-            asyncio.to_thread(lambda: get_count_sync("campaign_executions", {"channel": "whatsapp", "status": "delivered"})),
-            asyncio.to_thread(lambda: get_count_sync("campaign_executions", {"channel": "whatsapp", "status": "failed"})),
-            asyncio.to_thread(lambda: get_count_sync("campaign_executions", {"channel": "voice", "status": "delivered"})),
-            asyncio.to_thread(lambda: get_count_sync("campaign_executions", {"channel": "voice", "status": "failed"})),
-            return_exceptions=True
-        )
-        
-        # Unpack securely
-        def get_cnt(res):
-            if isinstance(res, Exception): return 0
-            return res.count if hasattr(res, 'count') and res.count is not None else 0
-            
-        total_msg = get_cnt(results[0])
-        delivered = get_cnt(results[1])
-        interested_count = get_cnt(results[2])
-        
-        failures_data = results[3].data if hasattr(results[3], 'data') else []
-        recent_data = results[4].data if hasattr(results[4], 'data') else []
-        
-        calls_made = get_cnt(results[5])
-        responses_received = get_cnt(results[6])
-
-        # Channel mapping
-        channel_stats = {
-            "email": {"sent": get_cnt(results[7]) + get_cnt(results[8]), "failed": get_cnt(results[8])},
-            "whatsapp": {"sent": get_cnt(results[9]) + get_cnt(results[10]), "failed": get_cnt(results[10])},
-            "voice": {"sent": get_cnt(results[11]) + get_cnt(results[12]), "failed": get_cnt(results[12])}
-        }
-        
-        # Ensure 'sent' values in overview match reality of messages actually sent
-        # (Usually Total Sent = Email Sent + WA Sent + Voice Sent, roughly)
-        
+        return rpc_response.data
+    except Exception as e:
+        print(f"Analytics RPC error: {e}")
+        # Fallback empty structure
         return {
-            "overview": {
-                "total_sent": total_msg,
-                "delivery_rate": (delivered / total_msg * 100) if total_msg > 0 else 0,
-                "active_campaigns": len(user_campaign_ids),
-                "interested_candidates": interested_count,
-                "calls_made": calls_made,
-                "responses_received": responses_received
-            },
-            "channel_stats": channel_stats,
-            "recent_failures": failures_data,
-            "recent_activity": recent_data
+            "overview": {"total_sent": 0, "delivery_rate": 0, "active_campaigns": 0, "interested_candidates": 0, "calls_made": 0, "responses_received": 0},
+            "channel_stats": {}, "recent_failures": [], "recent_activity": []
         }
     except Exception as e:
         print(f"Analytics error: {e}")

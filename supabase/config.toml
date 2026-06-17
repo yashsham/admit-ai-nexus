@@ -1,0 +1,31 @@
+project_id = "imlbkhgquajmnqgbvgwj"
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.retell-agent]
+verify_jwt = true
+
+[functions.email-agent]
+verify_jwt = true
+
+[functions.voice-agent]
+verify_jwt = true
+
+[functions.whatsapp-agent]
+verify_jwt = true
+
+[functions.campaign-orchestrator]
+verify_jwt = true
+
+[functions.college-counseling-crew]
+verify_jwt = true
+
+[functions.decision-engine]
+verify_jwt = true
+
+[functions.mcp-server]
+verify_jwt = false

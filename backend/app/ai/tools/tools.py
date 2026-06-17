@@ -199,7 +199,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
                     
                     msg = MIMEMultipart()
                     msg['To'] = to_email
-                    from_addr = f"admitconnectAI <{gmail_user}>" if gmail_user else f"admitconnectAI <{settings.FROM_EMAIL}>"
+                    from_addr = f'"admitconnectAI" <{gmail_user}>' if gmail_user else f'"admitconnectAI" <{settings.FROM_EMAIL}>'
                     msg['From'] = from_addr
                     msg['Subject'] = subject
                     
@@ -262,7 +262,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
                     from_email = "onboarding@resend.dev"
                     
                 payload = {
-                    "from": f"admitconnectAI <{from_email}>",
+                    "from": f'"admitconnectAI" <{from_email}>',
                     "to": to_email,
                     "subject": subject,
                     "html": final_content if is_html else None,
@@ -343,7 +343,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
                 smtp_port = 465
                 
                 msg = MIMEMultipart()
-                msg['From'] = f"admitconnectAI <{gmail_user}>"
+                msg['From'] = f'"admitconnectAI" <{gmail_user}>'
                 msg['To'] = to_email
                 msg['Subject'] = subject
                 msg['Date'] = email.utils.formatdate(localtime=True)

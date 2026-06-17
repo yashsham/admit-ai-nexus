@@ -153,11 +153,10 @@ def send_whatsapp_message(to_number: str, message: str, user_id: str = "default_
         print(f"[WhatsApp] EXCEPTION: {e}")
         return f"error_exception_{str(e)}"
 
-# --- Email (SendGrid / SMTP) ---
+# --- Email (SMTP Only) ---
 def send_email(to_email: str, subject: str, body: str, html_content: str = None, user_id: str = "default_user") -> str:
     """
-    Sends an email using standard SMTP (Gmail SSL) PRIORITY.
-    Falls back to SendGrid if SMTP fails.
+    Sends an email using standard SMTP (Gmail SSL).
     """
     try:
         # 0. Check Usage Limit
@@ -169,24 +168,22 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
         final_content = html_content if html_content else body
         is_html = True if html_content or "<html>" in final_content or "<br>" in final_content else False
 
-        # 1. PRIORITY: SMTP (Gmail)
+        # SMTP (Gmail)
         gmail_user = os.getenv("GMAIL_USER", "").strip()
         gmail_password = os.getenv("GMAIL_APP_PASSWORD", "").strip()
         
         if gmail_user and gmail_password:
             try:
-                print(f"DEBUG: Attempting SMTP (Priority) to {to_email} via {gmail_user} | Subject: {subject}")
+                print(f"DEBUG: Attempting SMTP to {to_email} via {gmail_user} | Subject: {subject}")
                 
                 import email.utils
                 
                 smtp_host = 'smtp.gmail.com'
                 smtp_port = 465  # SSL Port
                 
-                # Simple direct connection relying on system DNS resolution
-                print(f"DEBUG: Connecting directly to {smtp_host}:{smtp_port} (SSL)")
+                print(f"DEBUG: Connecting to {smtp_host}:{smtp_port} (SSL)")
                 
                 msg = MIMEMultipart()
-                # Friendly Name Format: "Admit AI <email@gmail.com>"
                 msg['From'] = f"Admit AI Nexus <{gmail_user}>"
                 msg['To'] = to_email
                 msg['Subject'] = subject
@@ -209,55 +206,17 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
                 subscription_service.log_usage(user_id, "email_sent", 1)
                 return "sent_smtp"
             except Exception as e:
-                print(f"DEBUG: SMTP Failed: {e}. Falling back to SendGrid.")
-                # Fall through to SendGrid
-                pass
+                print(f"DEBUG: SMTP Failed: {e}")
+                return f"error_smtp_{str(e)}"
         else:
-            print("DEBUG: No SMTP Credentials found. Trying SendGrid.")
-
-        # 2. FALLBACK: SendGrid
-        print(f"DEBUG: Checking SendGrid API Key: {'Found' if settings.SENDGRID_API_KEY else 'Not Found'}")
-        if settings.SENDGRID_API_KEY:
-            try:
-                print(f"DEBUG: Attempting SendGrid (Fallback) to {to_email}")
-                url = "https://api.sendgrid.com/v3/mail/send"
-                headers = {
-                    "Authorization": f"Bearer {settings.SENDGRID_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                
-                content_obj = {
-                    "type": "text/html" if is_html else "text/plain", 
-                    "value": final_content
-                }
-                
-                # Use GMAIL_USER as the "from" address if available, as it's likely the verified identity
-                from_email = settings.GMAIL_USER if settings.GMAIL_USER else settings.FROM_EMAIL
-                
-                data = {
-                    "personalizations": [{"to": [{"email": to_email}]}],
-                    "from": {"email": from_email},
-                    "subject": subject,
-                    "content": [content_obj]
-                }
-                response = requests.post(url, headers=headers, json=data)
-                if response.status_code in [200, 201, 202]:
-                    print(f"DEBUG: SendGrid Success: {response.status_code}")
-                    subscription_service.log_usage(user_id, "email_sent", 1)
-                    return "sent_sendgrid"
-                else:
-                    print(f"DEBUG: SendGrid Failed: {response.status_code} - {response.text}")
-                    return f"error_sendgrid_{response.text}"
-            except Exception as e:
-                print(f"SendGrid Error: {e}")
-                return f"error_sendgrid_{str(e)}"
+            print("DEBUG: No SMTP Credentials found (GMAIL_USER / GMAIL_APP_PASSWORD).")
+            return "error_no_smtp_credentials"
     
     except Exception as e:
         print(f"Email Exception: {e}")
         return f"error_{str(e)}"
 
-    # If we get here, everything failed
-    print(f"❌ FAILED: All email methods failed for {to_email}")
+    print(f"❌ FAILED: Email send failed for {to_email}")
     return "failed_all_methods"
 
 # --- Voice Call (Placeholder for Retell / Bland AI) ---

@@ -98,7 +98,8 @@ async def process_recipient(recipient: dict, campaign_id: str, channels: list, c
         if ("whatsapp" in channels) and r_phone:
             try:
                 # TODO: If tools.send_whatsapp_message is slow, wrap in run_in_threadpool
-                wa_status = tools.send_whatsapp_message(r_phone, whatsapp_msg, user_id=user_id)
+                import asyncio
+                wa_status = await asyncio.to_thread(tools.send_whatsapp_message, r_phone, whatsapp_msg, user_id=user_id)
                 
                 db_status = "delivered" if "sent" in wa_status else "failed"
                 supabase.table("campaign_executions").insert({
@@ -120,7 +121,8 @@ async def process_recipient(recipient: dict, campaign_id: str, channels: list, c
                 try:
                     logging.info(f"Sending Email to {r_email}...")
                     
-                    status = tools.send_email(r_email, email_subject, email_msg, html_content=email_msg, user_id=user_id)
+                    import asyncio
+                    status = await asyncio.to_thread(tools.send_email, r_email, email_subject, email_msg, html_content=email_msg, user_id=user_id)
                     logging.info(f"Email Status: {status}")
                     
                     db_status = "delivered" if "sent" in status else "failed"

@@ -53,6 +53,14 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             response.headers["X-Request-ID"] = request_id
             return response
             
+        except RuntimeError as e:
+            if "No response returned" in str(e):
+                # This happens when BackgroundTasks interact with BaseHTTPMiddleware
+                # Return a minimal 200 response to prevent crash
+                process_time = (time.time() - start_time) * 1000
+                logger.warning(f"BackgroundTask response gap (request_id={request_id}, latency={round(process_time, 2)}ms)")
+                return Response(status_code=200, content='{"status": "processing"}', media_type="application/json")
+            raise e
         except Exception as e:
             process_time = (time.time() - start_time) * 1000
             logger.error(f"Request Failed: {e}", extra={"request_id": request_id})

@@ -171,30 +171,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
         gmail_user = os.getenv("GMAIL_USER", "").strip() or getattr(settings, "GMAIL_USER", "").strip()
         gmail_password = os.getenv("GMAIL_APP_PASSWORD", "").strip() or getattr(settings, "GMAIL_APP_PASSWORD", "").strip()
 
-        # 1. OPTION A: Google Apps Script Web App Relay (100% Free, Bypasses firewall, Real Gmail Sender, No SMTP block)
-        gas_url = getattr(settings, "GOOGLE_APPS_SCRIPT_URL", None)
-        if gas_url:
-            try:
-                print(f"DEBUG: Attempting Google Apps Script Relay to {to_email}...")
-                import json
-                payload = {
-                    "to": to_email,
-                    "subject": subject,
-                    "body": final_content,
-                    "isHtml": is_html
-                }
-                headers = {"Content-Type": "application/json"}
-                response = requests.post(gas_url, data=json.dumps(payload), headers=headers, timeout=15)
-                if response.status_code in [200, 201]:
-                    print(f"DEBUG: Google Apps Script Relay Success to {to_email}")
-                    subscription_service.log_usage(user_id, "email_sent", 1)
-                    return "sent_apps_script"
-                else:
-                    print(f"DEBUG: Google Apps Script Relay Failed: {response.status_code} - {response.text}")
-            except Exception as e:
-                print(f"DEBUG: Google Apps Script Relay Exception: {e}")
-
-        # 2. OPTION B: Gmail REST API (100% Free, Bypasses firewall, Real Gmail Sender via OAuth2)
+        # 1. OPTION A: Gmail REST API (100% Free, Bypasses firewall, Real Gmail Sender via OAuth2)
         client_id = getattr(settings, "GMAIL_CLIENT_ID", None)
         client_secret = getattr(settings, "GMAIL_CLIENT_SECRET", None)
         refresh_token = getattr(settings, "GMAIL_REFRESH_TOKEN", None)
@@ -245,6 +222,29 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
                     print(f"DEBUG: Gmail OAuth Refresh Failed: {token_res.status_code} - {token_res.text}")
             except Exception as e:
                 print(f"DEBUG: Gmail REST API Exception: {e}")
+
+        # 2. OPTION B: Google Apps Script Web App Relay (100% Free, Bypasses firewall, Real Gmail Sender, No SMTP block)
+        gas_url = getattr(settings, "GOOGLE_APPS_SCRIPT_URL", None)
+        if gas_url:
+            try:
+                print(f"DEBUG: Attempting Google Apps Script Relay to {to_email}...")
+                import json
+                payload = {
+                    "to": to_email,
+                    "subject": subject,
+                    "body": final_content,
+                    "isHtml": is_html
+                }
+                headers = {"Content-Type": "application/json"}
+                response = requests.post(gas_url, data=json.dumps(payload), headers=headers, timeout=15)
+                if response.status_code in [200, 201]:
+                    print(f"DEBUG: Google Apps Script Relay Success to {to_email}")
+                    subscription_service.log_usage(user_id, "email_sent", 1)
+                    return "sent_apps_script"
+                else:
+                    print(f"DEBUG: Google Apps Script Relay Failed: {response.status_code} - {response.text}")
+            except Exception as e:
+                print(f"DEBUG: Google Apps Script Relay Exception: {e}")
 
         # 3. OPTION C: Resend API (HTTP 443)
         resend_key = getattr(settings, "RESEND_API_KEY", None)
@@ -356,7 +356,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
                 else:
                     msg.attach(MIMEText(final_content, 'plain'))
                 
-                server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+                server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=5)
                 server.login(gmail_user, gmail_password)
                 text = msg.as_string()
                 server.sendmail(gmail_user, to_email, text)
@@ -366,17 +366,15 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
                 return "sent_smtp"
             except Exception as e:
                 print(f"DEBUG: SMTP Failed: {e}")
-                return f"error_smtp_{str(e)}"
-        else:
-            print("DEBUG: No SMTP Credentials found (GMAIL_USER / GMAIL_APP_PASSWORD).")
-            return "error_no_smtp_credentials"
+                print(f"DEBUG: SMTP error details: {e}")
+
+        # If we get here, all methods failed
+        print(f"❌ FAILED: All email methods failed for {to_email}")
+        return "failed_all_methods"
             
     except Exception as e:
         print(f"Email Exception: {e}")
         return f"error_{str(e)}"
-
-    print(f"❌ FAILED: Email send failed for {to_email}")
-    return "failed_all_methods"
 
 # --- Voice Call (Placeholder for Retell / Bland AI) ---
 # --- Voice Call (Retell AI) ---

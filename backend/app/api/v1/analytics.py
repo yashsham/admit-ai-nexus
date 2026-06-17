@@ -184,6 +184,3 @@ async def get_analytics(campaign_id: Optional[str] = None, current_user: User = 
             "overview": {"total_sent": 0, "delivery_rate": 0, "active_campaigns": 0, "interested_candidates": 0, "calls_made": 0, "responses_received": 0},
             "channel_stats": {}, "recent_failures": [], "recent_activity": []
         }
-    except Exception as e:
-        print(f"Analytics error: {e}")
-        return {"error": str(e)}

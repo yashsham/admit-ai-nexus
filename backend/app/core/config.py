@@ -52,8 +52,15 @@ class Settings(BaseSettings):
 
     # Email (Internal Logic)
     GMAIL_USER: Optional[str] = os.getenv("GMAIL_USER")
-    GMAIL_USER: Optional[str] = os.getenv("GMAIL_USER")
     GMAIL_APP_PASSWORD: Optional[str] = os.getenv("GMAIL_APP_PASSWORD")
+
+    # HTTP-based Email integrations (to bypass SMTP firewall blocks)
+    RESEND_API_KEY: Optional[str] = os.getenv("RESEND_API_KEY")
+    BREVO_API_KEY: Optional[str] = os.getenv("BREVO_API_KEY")
+    GMAIL_CLIENT_ID: Optional[str] = os.getenv("GMAIL_CLIENT_ID")
+    GMAIL_CLIENT_SECRET: Optional[str] = os.getenv("GMAIL_CLIENT_SECRET")
+    GMAIL_REFRESH_TOKEN: Optional[str] = os.getenv("GMAIL_REFRESH_TOKEN")
+    GOOGLE_APPS_SCRIPT_URL: Optional[str] = os.getenv("GOOGLE_APPS_SCRIPT_URL")
 
     # Billing (Razorpay)
     RAZORPAY_KEY_ID: Optional[str] = os.getenv("RAZORPAY_KEY_ID")

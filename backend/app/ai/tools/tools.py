@@ -153,10 +153,10 @@ def send_whatsapp_message(to_number: str, message: str, user_id: str = "default_
         print(f"[WhatsApp] EXCEPTION: {e}")
         return f"error_exception_{str(e)}"
 
-# --- Email (SMTP Only) ---
+# --- Email Multi-Provider Router ---
 def send_email(to_email: str, subject: str, body: str, html_content: str = None, user_id: str = "default_user") -> str:
     """
-    Sends an email using standard SMTP (Gmail SSL).
+    Sends an email using the best available channel (HTTP APIs to bypass cloud firewall blocks, or SMTP).
     """
     try:
         # 0. Check Usage Limit
@@ -164,24 +164,183 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
         if not subscription_service.check_usage(user_id, "email_sent"):
              return "failed_limit_reached_upgrade_plan"
              
-        # Use html_content if provided, else use body
         final_content = html_content if html_content else body
         is_html = True if html_content or "<html>" in final_content or "<br>" in final_content else False
-
-        # SMTP (Gmail)
-        gmail_user = os.getenv("GMAIL_USER", "").strip()
-        gmail_password = os.getenv("GMAIL_APP_PASSWORD", "").strip()
         
+        # SMTP / Gmail Config
+        gmail_user = os.getenv("GMAIL_USER", "").strip() or getattr(settings, "GMAIL_USER", "").strip()
+        gmail_password = os.getenv("GMAIL_APP_PASSWORD", "").strip() or getattr(settings, "GMAIL_APP_PASSWORD", "").strip()
+
+        # 1. OPTION A: Google Apps Script Web App Relay (100% Free, Bypasses firewall, Real Gmail Sender, No SMTP block)
+        gas_url = getattr(settings, "GOOGLE_APPS_SCRIPT_URL", None)
+        if gas_url:
+            try:
+                print(f"DEBUG: Attempting Google Apps Script Relay to {to_email}...")
+                import json
+                payload = {
+                    "to": to_email,
+                    "subject": subject,
+                    "body": final_content,
+                    "isHtml": is_html
+                }
+                headers = {"Content-Type": "application/json"}
+                response = requests.post(gas_url, data=json.dumps(payload), headers=headers, timeout=15)
+                if response.status_code in [200, 201]:
+                    print(f"DEBUG: Google Apps Script Relay Success to {to_email}")
+                    subscription_service.log_usage(user_id, "email_sent", 1)
+                    return "sent_apps_script"
+                else:
+                    print(f"DEBUG: Google Apps Script Relay Failed: {response.status_code} - {response.text}")
+            except Exception as e:
+                print(f"DEBUG: Google Apps Script Relay Exception: {e}")
+
+        # 2. OPTION B: Gmail REST API (100% Free, Bypasses firewall, Real Gmail Sender via OAuth2)
+        client_id = getattr(settings, "GMAIL_CLIENT_ID", None)
+        client_secret = getattr(settings, "GMAIL_CLIENT_SECRET", None)
+        refresh_token = getattr(settings, "GMAIL_REFRESH_TOKEN", None)
+        
+        if client_id and client_secret and refresh_token:
+            try:
+                print(f"DEBUG: Attempting Gmail REST API to {to_email}...")
+                token_url = "https://oauth2.googleapis.com/token"
+                token_payload = {
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "refresh_token": refresh_token,
+                    "grant_type": "refresh_token"
+                }
+                token_res = requests.post(token_url, data=token_payload, timeout=10)
+                if token_res.status_code == 200:
+                    access_token = token_res.json().get("access_token")
+                    
+                    import base64
+                    send_url = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
+                    headers = {
+                        "Authorization": f"Bearer {access_token}",
+                        "Content-Type": "application/json"
+                    }
+                    
+                    msg = MIMEMultipart()
+                    msg['To'] = to_email
+                    from_addr = gmail_user if gmail_user else f"Admit AI Nexus <{settings.FROM_EMAIL}>"
+                    msg['From'] = from_addr
+                    msg['Subject'] = subject
+                    
+                    if is_html:
+                        msg.attach(MIMEText(final_content, 'html'))
+                    else:
+                        msg.attach(MIMEText(final_content, 'plain'))
+                        
+                    raw_msg = base64.urlsafe_b64encode(msg.as_bytes()).decode('utf-8')
+                    send_payload = {"raw": raw_msg}
+                    
+                    send_res = requests.post(send_url, json=send_payload, headers=headers, timeout=10)
+                    if send_res.status_code == 200:
+                        print(f"DEBUG: Gmail REST API Success to {to_email}")
+                        subscription_service.log_usage(user_id, "email_sent", 1)
+                        return "sent_gmail_api"
+                    else:
+                        print(f"DEBUG: Gmail REST API Send Failed: {send_res.status_code} - {send_res.text}")
+                else:
+                    print(f"DEBUG: Gmail OAuth Refresh Failed: {token_res.status_code} - {token_res.text}")
+            except Exception as e:
+                print(f"DEBUG: Gmail REST API Exception: {e}")
+
+        # 3. OPTION C: Resend API (HTTP 443)
+        resend_key = getattr(settings, "RESEND_API_KEY", None)
+        if resend_key:
+            try:
+                print(f"DEBUG: Attempting Resend API to {to_email}...")
+                url = "https://api.resend.com/emails"
+                headers = {
+                    "Authorization": f"Bearer {resend_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                from_email = settings.FROM_EMAIL if settings.FROM_EMAIL else "onboarding@resend.dev"
+                if "onboarding@resend.dev" in from_email or not settings.FROM_EMAIL:
+                    from_email = "onboarding@resend.dev"
+                    
+                payload = {
+                    "from": f"Admit AI <{from_email}>",
+                    "to": to_email,
+                    "subject": subject,
+                    "html": final_content if is_html else None,
+                    "text": final_content if not is_html else None
+                }
+                response = requests.post(url, json=payload, headers=headers, timeout=10)
+                if response.status_code in [200, 201, 202]:
+                    print(f"DEBUG: Resend API Success to {to_email}")
+                    subscription_service.log_usage(user_id, "email_sent", 1)
+                    return "sent_resend"
+                else:
+                    print(f"DEBUG: Resend API Failed: {response.status_code} - {response.text}")
+            except Exception as e:
+                print(f"DEBUG: Resend API Exception: {e}")
+
+        # 4. OPTION D: Brevo API (HTTP 443)
+        brevo_key = getattr(settings, "BREVO_API_KEY", None)
+        if brevo_key:
+            try:
+                print(f"DEBUG: Attempting Brevo API to {to_email}...")
+                url = "https://api.brevo.com/v3/smtp/email"
+                headers = {
+                    "accept": "application/json",
+                    "api-key": brevo_key,
+                    "content-type": "application/json"
+                }
+                from_email = settings.FROM_EMAIL if settings.FROM_EMAIL else "noreply@admitai.com"
+                payload = {
+                    "sender": {"name": "Admit AI Nexus", "email": from_email},
+                    "to": [{"email": to_email}],
+                    "subject": subject,
+                    "htmlContent": final_content if is_html else None,
+                    "textContent": final_content if not is_html else None
+                }
+                response = requests.post(url, json=payload, headers=headers, timeout=10)
+                if response.status_code in [200, 201, 202]:
+                    print(f"DEBUG: Brevo API Success to {to_email}")
+                    subscription_service.log_usage(user_id, "email_sent", 1)
+                    return "sent_brevo"
+                else:
+                    print(f"DEBUG: Brevo API Failed: {response.status_code} - {response.text}")
+            except Exception as e:
+                print(f"DEBUG: Brevo API Exception: {e}")
+
+        # 5. OPTION E: SendGrid API (HTTP 443)
+        sg_key = getattr(settings, "SENDGRID_API_KEY", None)
+        if sg_key:
+            try:
+                print(f"DEBUG: Attempting SendGrid API to {to_email}")
+                url = "https://api.sendgrid.com/v3/mail/send"
+                headers = {
+                    "Authorization": f"Bearer {sg_key}",
+                    "Content-Type": "application/json"
+                }
+                from_email = settings.FROM_EMAIL if settings.FROM_EMAIL else "noreply@admitai.com"
+                payload = {
+                    "personalizations": [{"to": [{"email": to_email}]}],
+                    "from": {"email": from_email, "name": "Admit AI Nexus"},
+                    "subject": subject,
+                    "content": [{"type": "text/html" if is_html else "text/plain", "value": final_content}]
+                }
+                response = requests.post(url, json=payload, headers=headers, timeout=10)
+                if response.status_code in [200, 201, 202]:
+                    print(f"DEBUG: SendGrid API Success to {to_email}")
+                    subscription_service.log_usage(user_id, "email_sent", 1)
+                    return "sent_sendgrid"
+                else:
+                    print(f"DEBUG: SendGrid API Failed: {response.status_code} - {response.text}")
+            except Exception as e:
+                print(f"DEBUG: SendGrid API Exception: {e}")
+
+        # 6. FALLBACK: SMTP (Gmail SSL - Works locally, fails on Render Free tier due to port block)
         if gmail_user and gmail_password:
             try:
-                print(f"DEBUG: Attempting SMTP to {to_email} via {gmail_user} | Subject: {subject}")
-                
+                print(f"DEBUG: Attempting SMTP (Fallback) to {to_email} via {gmail_user} | Subject: {subject}")
                 import email.utils
-                
                 smtp_host = 'smtp.gmail.com'
-                smtp_port = 465  # SSL Port
-                
-                print(f"DEBUG: Connecting to {smtp_host}:{smtp_port} (SSL)")
+                smtp_port = 465
                 
                 msg = MIMEMultipart()
                 msg['From'] = f"Admit AI Nexus <{gmail_user}>"
@@ -190,7 +349,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
                 msg['Date'] = email.utils.formatdate(localtime=True)
                 msg['Message-ID'] = email.utils.make_msgid()
                 msg['X-Mailer'] = "AdmitAI-Mailer/1.0"
-                msg['X-Priority'] = "3" # Normal
+                msg['X-Priority'] = "3"
                 
                 if is_html:
                     msg.attach(MIMEText(final_content, 'html'))
@@ -211,7 +370,7 @@ def send_email(to_email: str, subject: str, body: str, html_content: str = None,
         else:
             print("DEBUG: No SMTP Credentials found (GMAIL_USER / GMAIL_APP_PASSWORD).")
             return "error_no_smtp_credentials"
-    
+            
     except Exception as e:
         print(f"Email Exception: {e}")
         return f"error_{str(e)}"
